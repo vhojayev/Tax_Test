@@ -1,23 +1,75 @@
 <!doctype html>
-<meta charset="utf-8">
-<style>
-  body { font: 13px system-ui, sans-serif; width: 320px; margin: 12px; color: #1f2937; }
-  button { font: inherit; padding: 6px 10px; margin: 2px 4px 2px 0; cursor: pointer; }
-  #status { margin: 8px 0; min-height: 2.4em; }
-  .muted { color: #6b7280; font-size: 12px; }
-  hr { border: 0; border-top: 1px solid #e5e7eb; margin: 10px 0; }
-</style>
-<h3 style="margin:0 0 6px">JobFill</h3>
-<div id="profile" class="muted">No profile loaded.</div>
-<input id="file" type="file" accept="application/json,.json" hidden>
-<button id="import">Import profile JSON</button>
-<hr>
-<label><input id="auto" type="checkbox"> Auto-scan application pages</label><br>
-<button id="site">Enable on this site</button>
-<div class="muted">Auto-scan already runs on common job sites (Greenhouse, Lever, Workday, Ashby...). Use this for other sites.</div>
-<hr>
-<button id="scan">Scan &amp; highlight</button>
-<button id="fill">Autofill green</button>
-<div id="status" role="status"></div>
-<div class="muted">Green = confident, yellow = confirm, red = no answer. Click a badge to fill one field. Nothing is submitted.</div>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link rel="stylesheet" href="popup.css">
+<body>
+<header>
+  <div class="brand"><span class="logo">J</span><div><b>JobFill</b><small>Match jobs. Fill forms.</small></div></div>
+  <div class="status"><span id="s-key" class="pill">Key</span><span id="s-prof" class="pill">Profile</span></div>
+</header>
+
+<nav role="tablist">
+  <button class="tab on" data-tab="jobs">Jobs</button>
+  <button class="tab" data-tab="fill">Autofill</button>
+  <button class="tab" data-tab="setup">Setup</button>
+</nav>
+
+<main>
+<section id="jobs">
+  <div class="card">
+    <label class="sw"><input type="checkbox" data-pref="jobsEnabled"><i></i><span>Highlight &amp; score listings<small>Indeed, LinkedIn, Google Jobs</small></span></label>
+    <label class="sw"><input type="checkbox" data-pref="aiListings"><i></i><span>AI-score every listing<small>One cheap call per page of results</small></span></label>
+    <label class="sw"><input type="checkbox" data-pref="dimWeak"><i></i><span>Dim weak matches</span></label>
+    <label class="sw"><input type="checkbox" data-pref="hideRecruiters"><i></i><span>Hide recruiters &amp; aggregators<small>Otherwise they're only flagged</small></span></label>
+  </div>
+  <h3>What you're looking for</h3>
+  <div class="card form">
+    <label>Target roles<input data-pref="targetTitles" placeholder="Accounts Payable, AP Specialist, Accounting Ops"></label>
+    <label>Locations<input data-pref="locations" placeholder="Miami FL, Remote"></label>
+    <label class="sw"><input type="checkbox" data-pref="remoteOnly"><i></i><span>Remote only</span></label>
+    <label>Minimum salary<input data-pref="minSalary" placeholder="e.g. $60k"></label>
+    <label>Deal-breakers <small>one per line</small><textarea data-pref="dealBreakers" rows="3" placeholder="security clearance&#10;on-site only&#10;commission only"></textarea></label>
+  </div>
+  <h3>Always flag</h3>
+  <div class="card form">
+    <label>Recruiters / staffing firms <small>one per line, added to the built-in list</small><textarea data-pref="flagRecruiters" rows="2"></textarea></label>
+    <label>Aggregators <small>one per line</small><textarea data-pref="flagAggregators" rows="2"></textarea></label>
+  </div>
+</section>
+
+<section id="fill" hidden>
+  <div class="card">
+    <label class="sw"><input type="checkbox" data-pref="autoScan"><i></i><span>Auto-scan application forms<small>Runs on Greenhouse, Lever, Workday, Ashby and more</small></span></label>
+    <button id="site" class="ghost">Enable on this site…</button>
+  </div>
+  <div class="card">
+    <div class="row"><button id="scan" class="primary">Scan this page</button><button id="fill-btn" class="ghost">Autofill green</button></div>
+    <p class="hint"><span class="dot g"></span>ready <span class="dot a"></span>confirm <span class="dot r"></span>no answer. Sensitive questions are never filled without your click. Nothing is submitted.</p>
+  </div>
+</section>
+
+<section id="setup" hidden>
+  <h3>Anthropic API key</h3>
+  <div class="card form">
+    <div class="row"><input id="key" type="password" placeholder="sk-ant-…" autocomplete="off"><button id="reveal" class="ghost sm">Show</button></div>
+    <label>Deep score model <small>full job description</small>
+      <select id="deepModel"><option value="claude-opus-5-5">Claude Opus 5.5 (best)</option><option value="claude-sonnet-5-5">Claude Sonnet 5.5</option><option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option></select></label>
+    <label>Listing model <small>cards in search results</small>
+      <select id="listModel"><option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option><option value="claude-sonnet-5-5">Claude Sonnet 5.5</option><option value="claude-opus-5-5">Claude Opus 5.5</option></select></label>
+    <div class="row"><button id="save-key" class="primary">Save</button><button id="test-key" class="ghost">Test key</button></div>
+    <p class="hint">Stays in this browser. Your name, email and phone are never sent for scoring.</p>
+  </div>
+  <h3>Profile</h3>
+  <div class="card form">
+    <div id="profile" class="hint">No profile loaded.</div>
+    <input id="file" type="file" accept="application/json,.json" hidden>
+    <button id="import" class="ghost">Import profile JSON</button>
+  </div>
+  <h3>Troubleshooting</h3>
+  <div class="card form">
+    <button id="snap" class="ghost">Download page snapshot</button>
+    <p class="hint">If highlights are missing on a site, send me this file. It keeps page structure only (text trimmed).</p>
+  </div>
+</section>
+</main>
+<div id="toast" role="status"></div>
 <script src="popup.js"></script>

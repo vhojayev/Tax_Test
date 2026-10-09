@@ -7,6 +7,7 @@ import type { Profile } from "../src/index.js";
 
 const profile: Profile = { basics: { name: "Jane Doe", email: "jane@example.com", phone: "1" } };
 const panel = () => document.getElementById("jobfill-panel");
+const panelBtn = () => panel()!.shadowRoot!.querySelector("button.go") as HTMLButtonElement;
 const badges = () => document.querySelectorAll('[data-jobfill="badge"]').length;
 let stop: () => void;
 
@@ -18,7 +19,7 @@ describe("startAuto", () => {
     document.body.innerHTML = readFileSync(resolve(process.cwd(), "test/form.html"), "utf8");
     stop = startAuto(profile);
     expect(badges()).toBe(11);
-    expect(panel()?.textContent).toContain("Autofill green");
+    expect(panel()!.shadowRoot!.textContent).toContain("Autofill");
   });
   it("stays silent on a login form and a newsletter signup", () => {
     document.body.innerHTML = '<label>Email<input type="email"></label><label>Password<input type="password"></label>';
@@ -43,7 +44,7 @@ describe("startAuto", () => {
   it("panel button fills green fields only", () => {
     document.body.innerHTML = readFileSync(resolve(process.cwd(), "test/form.html"), "utf8");
     stop = startAuto(profile);
-    (panel()!.querySelector("button") as HTMLButtonElement).click();
+    panelBtn().click();
     expect((document.getElementById("em") as HTMLInputElement).value).toBe("jane@example.com");
     expect((document.getElementById("sal") as HTMLInputElement).value).toBe("");
   });

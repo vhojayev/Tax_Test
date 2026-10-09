@@ -5,7 +5,7 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && esbuild src/content.ts src/popup.ts --bundle --format=iife --target=chrome110 --outdir=dist && cp public/* dist/"
+    "build": "rm -rf dist && esbuild src/content.ts src/jobs.ts src/popup.ts src/background.ts --bundle --format=iife --target=chrome110 --outdir=dist && cp public/* dist/"
   },
   "devDependencies": {
     "@types/chrome": "^0.3.5",
@@ -14,5 +14,9 @@
     "jsdom": "^29.1.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
+    "zod": "^4.6.5"
   }
 }
