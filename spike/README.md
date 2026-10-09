@@ -5,7 +5,7 @@ Sends a resume (PDF or text) to Claude and returns schema-validated
 
 ```
 cd spike && npm install
-export ANTHROPIC_API_KEY=...        # never commit this
+export RESUME_API_KEY=sk-ant-...    # never commit this (ANTHROPIC_API_KEY also works locally)
 npm run parse -- resume.pdf out.json
 npm test && npm run typecheck
 ```
