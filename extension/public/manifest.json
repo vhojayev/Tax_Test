@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "JobFill",
+  "version": "0.1.0",
+  "description": "Highlights job-application fields and fills them from your resume profile. Runs locally; never submits.",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "webNavigation"
+  ],
+  "action": {
+    "default_title": "JobFill",
+    "default_popup": "popup.html"
+  }
+}

@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  body { font: 13px system-ui, sans-serif; width: 320px; margin: 12px; color: #1f2937; }
+  button { font: inherit; padding: 6px 10px; margin: 2px 4px 2px 0; cursor: pointer; }
+  #status { margin: 8px 0; min-height: 2.4em; }
+  .muted { color: #6b7280; font-size: 12px; }
+  hr { border: 0; border-top: 1px solid #e5e7eb; margin: 10px 0; }
+</style>
+<h3 style="margin:0 0 6px">JobFill</h3>
+<div id="profile" class="muted">No profile loaded.</div>
+<input id="file" type="file" accept="application/json,.json" hidden>
+<button id="import">Import profile JSON</button>
+<hr>
+<button id="scan">Scan &amp; highlight</button>
+<button id="fill">Autofill green</button>
+<div id="status" role="status"></div>
+<div class="muted">Green = confident, yellow = confirm, red = no answer. Click a badge to fill one field. Nothing is submitted.</div>
+<script src="popup.js"></script>
