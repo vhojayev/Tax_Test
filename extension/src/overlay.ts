@@ -40,3 +40,33 @@ export function showSuggestions(all: Suggestion[], root: ParentNode = document) 
     el.insertAdjacentElement("afterend", badge);
   }
 }
+
+const PANEL = "jobfill-panel";
+
+export function clearPanel(doc: Document = document) {
+  doc.getElementById(PANEL)?.remove();
+}
+
+/** Small fixed panel so the user can fill without opening the popup. */
+export function showPanel(c: { green: number; yellow: number; red: number }, onFill: () => number, doc: Document = document) {
+  clearPanel(doc);
+  const p = doc.createElement("div");
+  p.id = PANEL;
+  p.setAttribute(ATTR, "panel");
+  p.style.cssText = "all:initial;position:fixed;right:12px;bottom:12px;z-index:2147483647;background:#111827;color:#fff;" +
+    "font:12px system-ui,sans-serif;padding:8px 10px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.35);display:flex;gap:8px;align-items:center";
+  const t = doc.createElement("span");
+  t.textContent = `JobFill  ${c.green} green · ${c.yellow} confirm · ${c.red} empty`;
+  const b = doc.createElement("button");
+  b.type = "button";
+  b.textContent = "Autofill green";
+  b.style.cssText = "all:initial;font:12px system-ui,sans-serif;background:#16a34a;color:#fff;padding:3px 8px;border-radius:4px;cursor:pointer";
+  b.addEventListener("click", () => { const n = onFill(); b.textContent = `Filled ${n}`; });
+  const x = doc.createElement("button");
+  x.type = "button";
+  x.textContent = "×";
+  x.style.cssText = "all:initial;font:14px system-ui,sans-serif;color:#9ca3af;cursor:pointer";
+  x.addEventListener("click", () => p.remove());
+  p.append(t, b, x);
+  doc.body.appendChild(p);
+}

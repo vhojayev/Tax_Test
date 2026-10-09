@@ -40,7 +40,31 @@ $<HTMLInputElement>("file").addEventListener("change", async (e) => {
     if (typeof p !== "object" || !p?.basics) throw new Error("not a JSON Resume (missing basics)");
     await chrome.storage.local.set({ profile: p });
     status("Profile imported.");
-    renderProfile();
+    async function renderAuto() {
+  const { autoScan } = await chrome.storage.local.get("autoScan");
+  $<HTMLInputElement>("auto").checked = autoScan !== false;
+}
+$<HTMLInputElement>("auto").addEventListener("change", (e) =>
+  chrome.storage.local.set({ autoScan: (e.target as HTMLInputElement).checked }));
+
+// Grant access to the current site only, then register the content script there permanently.
+$("site").addEventListener("click", async () => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const url = new URL(tab?.url ?? "");
+    if (!/^https?:$/.test(url.protocol)) return status("Can't enable on this page.");
+    const pattern = `${url.origin}/*`;
+    if (!(await chrome.permissions.request({ origins: [pattern] }))) return status("Permission not granted.");
+    const id = `jobfill-${url.origin}`;
+    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] });
+    if (!existing.length)
+      await chrome.scripting.registerContentScripts([{ id, matches: [pattern], js: ["content.js"], allFrames: true, runAt: "document_idle", persistAcrossSessions: true }]);
+    status(`Enabled on ${url.host}. Reload the page.`);
+  } catch (err) { status(`Failed: ${(err as Error).message}`); }
+});
+
+renderAuto();
+renderProfile();
   } catch (err) { status(`Import failed: ${(err as Error).message}`); }
 });
 
@@ -58,4 +82,28 @@ $("fill").addEventListener("click", async () => {
   catch (err) { status(`Can't run on this page: ${(err as Error).message}`); }
 });
 
+async function renderAuto() {
+  const { autoScan } = await chrome.storage.local.get("autoScan");
+  $<HTMLInputElement>("auto").checked = autoScan !== false;
+}
+$<HTMLInputElement>("auto").addEventListener("change", (e) =>
+  chrome.storage.local.set({ autoScan: (e.target as HTMLInputElement).checked }));
+
+// Grant access to the current site only, then register the content script there permanently.
+$("site").addEventListener("click", async () => {
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const url = new URL(tab?.url ?? "");
+    if (!/^https?:$/.test(url.protocol)) return status("Can't enable on this page.");
+    const pattern = `${url.origin}/*`;
+    if (!(await chrome.permissions.request({ origins: [pattern] }))) return status("Permission not granted.");
+    const id = `jobfill-${url.origin}`;
+    const existing = await chrome.scripting.getRegisteredContentScripts({ ids: [id] });
+    if (!existing.length)
+      await chrome.scripting.registerContentScripts([{ id, matches: [pattern], js: ["content.js"], allFrames: true, runAt: "document_idle", persistAcrossSessions: true }]);
+    status(`Enabled on ${url.host}. Reload the page.`);
+  } catch (err) { status(`Failed: ${(err as Error).message}`); }
+});
+
+renderAuto();
 renderProfile();
