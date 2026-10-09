@@ -1,0 +1,16 @@
+<form>
+  <label for="fn">First Name *</label><input id="fn" name="job_application[first_name]" type="text">
+  <label for="ln">Last Name *</label><input id="ln" name="job_application[last_name]" type="text">
+  <label for="em">Email *</label><input id="em" type="email" name="job_application[email]">
+  <label for="ph">Phone</label><input id="ph" type="tel" name="job_application[phone]">
+  <label>Current company <input name="org" type="text"></label>
+  <label for="ci">City</label><input id="ci" name="city">
+  <label for="co">Country</label>
+  <select id="co"><option value="">Select...</option><option value="usa">United States</option><option value="ca">Canada</option></select>
+  <label for="li">LinkedIn Profile</label><input id="li" name="urls[LinkedIn]">
+  <label for="wa">Are you legally authorized to work in the United States?</label>
+  <select id="wa"><option>Select</option><option>Yes</option><option>No</option></select>
+  <label for="sal">Salary expectations</label><input id="sal" name="salary">
+  <label for="why">Why do you want to work here?</label><textarea id="why" name="why"></textarea>
+  <input type="hidden" name="token" value="x"><input type="file" name="resume"><button type="submit">Submit</button>
+</form>
