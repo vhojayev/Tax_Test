@@ -14,7 +14,7 @@ const RECRUITERS = [
   "aerotek", "apex systems", "hays", "experis", "jobot", "cybercoders", "accountemps", "beacon hill", "volt", "allegis",
   "judge group", "motion recruitment", "collabera", "diversant", "yoh", "creative circle", "the staffing", "talentburst",
   "ettain", "kelly", "spherion", "express employment", "labor finders", "oakridge staffing", "lucas group", "michael page",
-  "page personnel", "reed", "harnham", "dexian", "pyramid consulting", "actalent", "ascendo", "mondo", "vaco", "ntt data staffing",
+  "page personnel", "reed", "spencer ogden", "talentify", "addison group", "tandym", "mastech", "staffmark", "pinnacle group", "prestige staffing", "brooksource", "net2source", "robert walters", "hire velocity", "cielo", "kelly", "tek systems", "ge talent", "jobspring", "mondo", "vaco", "talent software services", "nesco resource", "gpac", "accountabilities", "accounting principals", "roth staffing", "onward search", "salesforce staffing", "harnham", "dexian", "pyramid consulting", "actalent", "ascendo", "mondo", "vaco", "ntt data staffing",
 ];
 const NAME_RE = /\b(staffing|recruit(?:ing|ment|ers?)|headhunt\w*|executive search|search (?:group|partners|firm)|manpower|personnel|workforce solutions|talent (?:solutions|acquisition|partners|group|network))\b/i;
 const DESC_SIGNALS: [RegExp, string][] = [
@@ -30,7 +30,7 @@ const hit = (name: string, list: string[]) => list.find((x) => name === x || nam
 
 export const isBoard = (via?: string) => !!via && BOARDS.some((b) => norm(via).includes(b));
 
-export interface EmployerInput { company: string; via?: string; title?: string; text?: string; sponsored?: boolean }
+export interface EmployerInput { company: string; via?: string; title?: string; text?: string; sponsored?: boolean; applyOptions?: string[] }
 
 export function classifyEmployer(inp: EmployerInput, prefs?: Pick<Prefs, "flagRecruiters" | "flagAggregators">): Employer {
   const company = norm(inp.company);
@@ -45,6 +45,12 @@ export function classifyEmployer(inp: EmployerInput, prefs?: Pick<Prefs, "flagRe
   if (aggVia) reasons.push(`posted via aggregator ${inp.via}`);
   if (aggName) reasons.push(`"${inp.company}" is a job aggregator`);
   if (reasons.length) return { type: "aggregator", reasons };
+
+  // Google Jobs lists every place a posting appears. "Apply directly on X" means the employer's own link exists;
+  // if it has none and every option is an aggregator/board, the real employer is probably hidden.
+  const opts = (inp.applyOptions ?? []).map((o) => ({ direct: /apply directly/i.test(o), name: norm(o.replace(/^apply (directly )?on\s+/i, "")) }));
+  if (opts.length && !opts.some((o) => o.direct) && opts.every((o) => hit(o.name, aggList) || BOARDS.some((b) => o.name.includes(b))))
+    return { type: "aggregator", reasons: ["no direct employer link; only job boards/aggregators"] };
 
   const recName = company && (hit(company, recList) || (NAME_RE.test(inp.company) ? "name" : undefined));
   if (recName) reasons.push(recName === "name" ? `"${inp.company}" looks like a staffing/recruiting firm` : `"${inp.company}" is a known staffing agency`);

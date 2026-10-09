@@ -12,6 +12,7 @@ export interface Env {
   load(): Promise<{ profile?: Profile; prefs?: Partial<Prefs>; hasKey: boolean }>;
 }
 
+const norm = (x: string) => x.toLowerCase().replace(/\s+/g, " ").trim();
 const BATCH = 20;
 const TICK_MS = 400;
 
@@ -87,7 +88,7 @@ export class JobsController {
     for (const c of found) {
       const st = this.cards.get(c.id)!;
       const score = st.ai?.score ?? st.quick.score;
-      const employer = classifyEmployer({ company: c.company, via: c.via, title: c.title, text: c.snippet, sponsored: c.sponsored }, this.prefs);
+      const employer = classifyEmployer({ company: c.company, via: c.via, title: c.title, text: c.snippet, sponsored: c.sponsored, applyOptions: c.applyOptions }, this.prefs);
       renderChip(this.doc, c.el, {
         score, ai: !!st.ai, reason: st.ai?.reason ?? st.quick.reason, employer, via: c.via, sponsored: c.sponsored,
         pending: !!st.pending,
@@ -127,7 +128,7 @@ export class JobsController {
     this.paintAll(found);
     const r = await this.env.ask<CardResult[]>({
       type: "ai:cards",
-      cards: todo.map((c) => ({ id: c.id, title: c.title, company: c.company, location: c.location, snippet: c.snippet.slice(0, 400), via: c.via })),
+      cards: todo.map((c) => ({ id: c.id, title: c.title, company: c.company, location: c.location, snippet: c.snippet.slice(0, 600), via: c.via, applyOptions: c.applyOptions })),
     });
     for (const c of todo) this.cards.get(c.id)!.pending = false;
     if (r.ok) {
@@ -141,6 +142,8 @@ export class JobsController {
     this.paintAll(this.adapter.cards(this.doc));
     this.obs?.observe(this.doc.body, { childList: true, subtree: true });
     if (!r.ok) this.paintSetup(r.error);
+    // More unscored cards than one batch holds: keep going without waiting for a page change.
+    else if (found.some((c) => { const st = this.cards.get(c.id); return st && !st.ai && !this.failed.has(c.id); })) this.schedule();
   }
 
   private paintSetup(message: string) {
@@ -154,7 +157,7 @@ export class JobsController {
     const sig = hash(d.title + d.company + d.description.slice(0, 200));
     if (sig === this.detailSig && !force) return;
     this.detailSig = sig;
-    const employer = classifyEmployer({ company: d.company, via: d.via, title: d.title, text: d.description }, this.prefs);
+    const employer = classifyEmployer({ company: d.company, via: d.via, title: d.title, text: d.description, applyOptions: d.applyOptions }, this.prefs);
     if (!this.hasKey) {
       renderJobPanel(this.doc, { kind: "setup", message: "Add your Anthropic API key in the JobFill popup to score this job." });
       return;
@@ -167,7 +170,11 @@ export class JobsController {
       ? { kind: "result", title: d.title, company: d.company, poster: d.poster, via: d.via, result: r.data, employer, model: r.model, cached: r.cached, onRetry: retry }
       : { kind: "error", title: d.title, message: r.error, onRetry: retry });
     // A deep result is better than the card estimate for this listing: reflect it on the card too.
-    if (r.ok && d.id) { const s = this.cards.get(d.id); if (s) { s.ai = { id: d.id, score: r.data.score, reason: r.data.summary }; this.tick(); } }
+    if (r.ok) {
+      const same = this.adapter.cards(this.doc).find((c) => norm(c.title) === norm(d.title) && norm(c.company) === norm(d.company));
+      const st = same && this.cards.get(same.id);
+      if (st) { st.ai = { id: same!.id, score: r.data.score, reason: r.data.summary }; void this.tick(); }
+    }
   }
 
   private async rescore() { this.detailSig = ""; await this.syncDetail(true); }

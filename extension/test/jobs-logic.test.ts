@@ -25,6 +25,12 @@ describe("classifyEmployer", () => {
     expect(classifyEmployer({ company: "Blue Sky Inc" }, prefs).type).toBe("recruiter");
     expect(classifyEmployer({ company: "Acme", via: "JobsRUs" }, prefs).type).toBe("aggregator");
   });
+  it("Google apply options: only boards/aggregators and no direct link => aggregator; a direct link => not", () => {
+    const only = ["Apply on Lensa", "Apply on Jobrapido", "Apply on LinkedIn"];
+    expect(classifyEmployer({ company: "Pied Piper", via: "LinkedIn", applyOptions: only }).type).toBe("aggregator");
+    expect(classifyEmployer({ company: "Hooli", via: "LinkedIn", applyOptions: [...only, "Apply directly on Hooli Careers"] }).type).toBe("direct");
+    expect(classifyEmployer({ company: "Hooli", via: "LinkedIn", applyOptions: ["Apply on LinkedIn", "Apply on Hooli Careers"] }).type).toBe("direct");
+  });
   it("is unclear when no employer is shown", () => {
     expect(classifyEmployer({ company: "" }).type).toBe("unclear");
   });

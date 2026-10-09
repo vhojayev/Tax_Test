@@ -6,6 +6,7 @@ export interface JobCard {
   location: string;
   snippet: string;
   via?: string;        // source board/aggregator shown on the card ("via ZipRecruiter")
+  applyOptions?: string[]; // Google Jobs: "Apply on X" / "Apply directly on Y" choices
   sponsored?: boolean;
 }
 
@@ -17,6 +18,7 @@ export interface JobDetail {
   description: string;
   poster?: string;     // hiring-team member / recruiter shown on the page
   via?: string;
+  applyOptions?: string[];
   url: string;
 }
 
@@ -65,6 +67,6 @@ export interface DeepResult {
 }
 
 export type Msg =
-  | { type: "ai:cards"; cards: { id: string; title: string; company: string; location: string; snippet: string; via?: string }[] }
+  | { type: "ai:cards"; cards: { id: string; title: string; company: string; location: string; snippet: string; via?: string; applyOptions?: string[] }[] }
   | { type: "ai:deep"; detail: Omit<JobDetail, "id"> & { id?: string }; fresh?: boolean };
 export type Reply<T> = { ok: true; data: T; cached?: boolean; model?: string } | { ok: false; error: string };

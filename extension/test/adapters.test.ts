@@ -24,26 +24,56 @@ describe("adapters (against assumed markup)", () => {
     expect(d).toMatchObject({ id: "jk1", title: "Accounts Payable Specialist", company: "Globex Corp" });
     expect(d.description).toContain("- Process invoices");
   });
-  it("linkedin: cards, poster and detail", () => {
+  it("linkedin (current layout): cards via the Dismiss button, detail via the JobDetails screen", () => {
     load("linkedin");
     const cards = linkedin.cards(document);
-    expect(cards.map((c) => [c.id, c.title, c.company])).toEqual([["111", "Accounts Payable Analyst", "Initech"], ["222", "Warehouse Associate", "Randstad USA"]]);
+    expect(cards.map((c) => [c.title, c.company, c.location])).toEqual([
+      ["Accounts Payable Analyst", "Initech", "Remote"],
+      ["Warehouse Associate", "Randstad USA", "Houston, TX"],
+    ]);
+    expect(cards[0].sponsored).toBe(true);
+    expect(cards[1].sponsored).toBe(false);
+    const d = linkedin.detail(document, new URL("https://www.linkedin.com/jobs/search-results/"))!;
+    expect(d).toMatchObject({ id: "4477483008", title: "Accounts Payable Analyst", company: "Initech", location: "Remote", poster: "Pat Lee" });
+    expect(d.description).toContain("- Experience with NetSuite or SAP");
+    expect(d.description).not.toContain("…");      // the "… more" toggle is stripped
+  });
+  it("linkedin (previous class-based layout) still works", () => {
+    load("linkedin-legacy");
+    const cards = linkedin.cards(document);
+    expect(cards.map((c) => [c.title, c.company])).toEqual([["Accounts Payable Analyst", "Initech"], ["Warehouse Associate", "Randstad USA"]]);
     expect(cards[0].sponsored).toBe(true);
     const d = linkedin.detail(document, new URL("https://www.linkedin.com/jobs/search/?currentJobId=111"))!;
     expect(d).toMatchObject({ id: "111", company: "Initech", poster: "Pat Lee" });
   });
-  it("google: reads 'via' source separately from location", () => {
+  it("google: header, via source and apply options come from the page, the template text is not shown but is read", () => {
     load("google");
-    const [a, b] = google.cards(document);
-    expect(a).toMatchObject({ title: "Accounts Payable Specialist", company: "Hooli", location: "Remote", via: "ZipRecruiter" });
-    expect(b.via).toBe("LinkedIn");
+    const cards = google.cards(document);
+    expect(cards.map((c) => [c.title, c.company, c.location, c.via])).toEqual([
+      ["Accounts Payable Specialist", "Hooli", "Remote", "LinkedIn"],
+      ["AP Clerk", "Pied Piper", "Miami, FL", "Lensa"],
+      ["Accounts Payable Analyst", "Globex", "Miami, FL", "Indeed"],
+    ]);
+    expect(cards[0].applyOptions).toEqual(["Apply on LinkedIn", "Apply directly on Hooli Careers"]);
+    expect(cards[0].snippet).toContain("NetSuite invoice coding");
+    expect(cards[0].snippet).not.toContain("var x");   // template scripts are dropped
+    expect(cards[0].snippet).toContain("Posted 1 day ago");
+  });
+  it("google: location/via split survives a different or mangled separator", () => {
+    document.body.innerHTML = readFileSync(resolve(process.cwd(), "test/fixtures/google.html"), "utf8").replace("Remote • via LinkedIn", "Remote â€¢ via LinkedIn").replace("Miami, FL • via Lensa", "Miami, FL | via Lensa");
+    const cards = google.cards(document);
+    expect([cards[0].location, cards[0].via, cards[1].location, cards[1].via]).toEqual(["Remote", "LinkedIn", "Miami, FL", "Lensa"]);
+  });
+  it("google: no selected job pane means no detail", () => {
+    load("google");
+    expect(google.detail(document, new URL("https://www.google.com/search?q=ap+jobs&udm=8"))).toBeNull();
   });
   it("routes by URL", () => {
     expect(pickAdapter(new URL("https://www.indeed.com/jobs?q=x"))?.name).toBe("indeed");
     expect(pickAdapter(new URL("https://ca.indeed.com/viewjob?jk=1"))?.name).toBe("indeed");
     expect(pickAdapter(new URL("https://www.linkedin.com/jobs/search/"))?.name).toBe("linkedin");
     expect(pickAdapter(new URL("https://www.linkedin.com/feed/"))).toBeUndefined();
-    expect(pickAdapter(new URL("https://www.google.com/search?q=ap+jobs&ibp=htl;jobs"))?.name).toBe("google-jobs");
-    expect(pickAdapter(new URL("https://www.google.com/search?q=cats"))).toBeUndefined();
+    expect(pickAdapter(new URL("https://www.google.com/search?q=ap+jobs&udm=8"))?.name).toBe("google-jobs");
+    expect(pickAdapter(new URL("https://www.google.com/maps"))).toBeUndefined();
   });
 });

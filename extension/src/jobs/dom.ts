@@ -1,5 +1,8 @@
 export const clean = (s: string | null | undefined) => (s ?? "").replace(/\s+/g, " ").trim();
 
+/** Sites often render a visible label plus a screen-reader copy ("2 weeks ago2 weeks ago"): keep one. */
+export const undouble = (s: string) => s.replace(/^(.{3,}?)\1$/, "$1");
+
 /** Text of the first selector (in order) that matches and has text. */
 export function pick(root: ParentNode, selectors: string[]): string {
   for (const sel of selectors) {
@@ -25,11 +28,12 @@ export function hash(s: string): string {
 }
 
 /** Description text with paragraph/list breaks kept, so the model sees structure. */
-export function blockText(el: Element | null): string {
+export function blockText(el: Element | DocumentFragment | null): string {
   if (!el) return "";
   const out: string[] = [];
   const walk = (n: Node) => {
     if (n.nodeType === 3) { out.push(n.textContent ?? ""); return; }
+    if (n.nodeType === 11) { n.childNodes.forEach(walk); return; } // DocumentFragment (e.g. <template>.content)
     if (!(n instanceof Element)) return;
     const tag = n.tagName;
     if (tag === "SCRIPT" || tag === "STYLE") return;
