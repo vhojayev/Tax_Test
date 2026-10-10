@@ -1,14 +1,14 @@
 import type { Profile } from "../profile.js";
 import { hash } from "./dom.js";
-import { companyIntel, makeClient, scoreCards, scoreDeep, type LlmClient } from "./llm.js";
-import { DEFAULT_PREFS, DEFAULT_SETTINGS, type CardResult, type CompanyIntel, type DeepResult, type Msg, type Prefs, type Reply, type Settings } from "./types.js";
+import { companyIntel, makeClient, scoreCards, scoreDeep, scoreHeadline, type LlmClient } from "./llm.js";
+import { DEFAULT_PREFS, DEFAULT_SETTINGS, type CardResult, type CompanyIntel, type DeepResult, type Headline, type Msg, type Prefs, type Reply, type Settings } from "./types.js";
 
 export interface Store { get(keys: string[]): Promise<Record<string, any>>; set(v: Record<string, any>): Promise<void> }
 
 const CACHE_MAX = 400;
 
 /** Runs in the service worker so the API key never enters a web page's context. */
-export async function handle(msg: Msg, store: Store, clientFor: (key: string) => LlmClient = makeClient): Promise<Reply<CardResult[] | DeepResult | CompanyIntel>> {
+export async function handle(msg: Msg, store: Store, clientFor: (key: string) => LlmClient = makeClient): Promise<Reply<CardResult[] | DeepResult | CompanyIntel | Headline>> {
   const s = await store.get(["settings", "profile", "prefs", "cache"]);
   const settings: Settings = { ...DEFAULT_SETTINGS, ...(s.settings ?? {}) };
   const prefs: Prefs = { ...DEFAULT_PREFS, ...(s.prefs ?? {}) };
@@ -19,7 +19,7 @@ export async function handle(msg: Msg, store: Store, clientFor: (key: string) =>
   }
   if (!profile) return { ok: false, error: "Import your profile JSON first." };
 
-  const model = msg.type === "ai:cards" ? settings.listModel : settings.deepModel;
+  const model = msg.type === "ai:cards" || msg.type === "ai:headline" ? settings.listModel : settings.deepModel;
   const fingerprint = hash(JSON.stringify([profile, prefs, model]));
   const cache: Record<string, unknown> = s.cache ?? {};
   const client = clientFor(settings.apiKey);
@@ -44,6 +44,15 @@ export async function handle(msg: Msg, store: Store, clientFor: (key: string) =>
         await store.set({ cache: trim(cache) });
       }
       return { ok: true, data: results, cached: todo.length === 0, model };
+    }
+    if (msg.type === "ai:headline") {
+      const hk = `h:${fingerprint}:${hash(msg.detail.title + msg.detail.company + msg.detail.description)}`;
+      const cached = msg.fresh ? undefined : (cache[hk] as Headline | undefined);
+      if (cached) return { ok: true, data: cached, cached: true, model };
+      const data = await scoreHeadline(client, model, profile, prefs, msg.detail);
+      cache[hk] = data;
+      await store.set({ cache: trim(cache) });
+      return { ok: true, data, model };
     }
     const k = `d:${fingerprint}:${hash(msg.detail.title + msg.detail.company + msg.detail.description)}`;
     const hitv = msg.fresh ? undefined : (cache[k] as DeepResult | undefined);

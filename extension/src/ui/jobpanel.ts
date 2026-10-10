@@ -6,7 +6,7 @@ export type PanelState =
   | { kind: "setup"; message: string }
   | { kind: "loading"; title: string; company: string; employer: Employer }
   | { kind: "error"; title: string; message: string; onRetry: () => void }
-  | { kind: "result"; title: string; company: string; poster?: string; via?: string; result: DeepResult; employer: Employer; model?: string; cached?: boolean; ms?: number; intel?: IntelView; onRetry: () => void };
+  | { kind: "result"; title: string; company: string; poster?: string; via?: string; result: DeepResult; employer: Employer; model?: string; cached?: boolean; ms?: number; refining?: boolean; note?: string; intel?: IntelView; onRetry: () => void };
 
 const ID = "jobfill-job-panel";
 let collapsed = false;
@@ -160,8 +160,9 @@ export function renderJobPanel(doc: Document, st: PanelState) {
   list("Gaps", r.gaps.map((g) => ({ main: g })));
   list("Watch out", r.red_flags.map((g) => ({ main: g })));
 
+  if (st.refining) body.append(el(doc, "div", "skel"), el(doc, "div", "skel"));
   const foot = el(doc, "div", "foot");
-  foot.append(el(doc, "span", "", `${st.cached ? "cached · " : ""}${st.model ?? ""}${st.ms && !st.cached ? ` · ${(st.ms / 1000).toFixed(1)}s` : ""}`));
+  foot.append(el(doc, "span", "", st.refining ? "analysing strengths and gaps…" : st.note ?? `${st.cached ? "cached · " : ""}${st.model ?? ""}${st.ms && !st.cached ? ` · ${(st.ms / 1000).toFixed(1)}s` : ""}`));
   const again = el(doc, "button", "x", "↻ re-score");
   again.addEventListener("click", st.onRetry);
   foot.append(again);

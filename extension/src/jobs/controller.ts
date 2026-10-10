@@ -1,5 +1,5 @@
 import type { Profile } from "../profile.js";
-import type { Adapter, CardResult, CompanyIntel, DeepResult, IntelView, JobCard, Msg, Prefs, Reply } from "./types.js";
+import type { Adapter, CardResult, CompanyIntel, DeepResult, Headline, IntelView, JobCard, Msg, Prefs, Reply } from "./types.js";
 import { DEFAULT_PREFS } from "./types.js";
 import { classifyEmployer } from "./employer.js";
 import { quickScore, tierOf } from "./quick.js";
@@ -14,7 +14,10 @@ export interface Env {
 }
 
 const norm = (x: string) => x.toLowerCase().replace(/\s+/g, " ").trim();
-const BATCH = 20;
+const BATCH = 20;          // listings scored per tick...
+const CHUNK = 5;           // ...sent as parallel requests of this size, so cards fill in as each returns
+const INTEL_CONC = 3;      // background company lookups in flight at once
+const INTEL_MAX = 40;      // per page
 const TICK_MS = 400;
 
 const HOVER_MS = 350;
@@ -37,6 +40,9 @@ export class JobsController {
   private listError = "";
   private intelCache = new Map<string, Promise<IntelView>>();   // per company, so hover and panel share one request
   private hoverCtx = new WeakMap<HTMLElement, HoverCtx>();
+  private intelQueue: { company: string; hint: Hint }[] = [];
+  private intelSeen = new Set<string>();
+  private intelActive = 0;
   private hoverTimer?: ReturnType<typeof setTimeout>;
 
   constructor(private doc: Document, private url: () => URL, private adapter: Adapter, private env: Env) {}
@@ -73,6 +79,7 @@ export class JobsController {
     this.detailSig = "";
     this.listError = "";
     this.intelCache.clear();
+    this.intelQueue = []; this.intelSeen.clear();
   }
   async refresh() { await this.reload(); await this.tick(); }
 
@@ -85,8 +92,9 @@ export class JobsController {
       const found = this.adapter.cards(this.doc);
       for (const c of found) this.ensure(c);
       this.paintAll(found);
+      if (this.hasKey) this.prefetchIntel(found);
       if (this.prefs.aiListings && this.hasKey) void this.scoreBatch(found);
-      await this.syncDetail();
+      void this.syncDetail(); // long-running: must not hold the page watcher paused
     } finally {
       this.obs?.observe(this.doc.body, { childList: true, subtree: true });
     }
@@ -169,11 +177,39 @@ export class JobsController {
     for (const child of Array.from(el.children) as HTMLElement[]) child.style.opacity = "";
   }
 
+  /** Look up every employer on the page in the background so hovering is instant. */
+  private prefetchIntel(found: JobCard[]) {
+    for (const c of found) {
+      const k = norm(c.company);
+      if (!k || this.intelSeen.has(k) || this.intelSeen.size >= INTEL_MAX) continue;
+      this.intelSeen.add(k);
+      this.intelQueue.push({ company: c.company, hint: { title: c.title, location: c.location, via: c.via } });
+    }
+    this.pumpIntel();
+  }
+
+  private pumpIntel() {
+    while (this.intelActive < INTEL_CONC && this.intelQueue.length) {
+      const job = this.intelQueue.shift()!;
+      this.intelActive++;
+      void this.intel(job.company, job.hint).finally(() => { this.intelActive--; this.pumpIntel(); });
+    }
+  }
+
   private async scoreBatch(found: JobCard[]) {
     const todo = found.filter((c) => { const s = this.cards.get(c.id)!; return !s.ai && !s.pending && !this.failed.has(c.id); }).slice(0, BATCH);
     if (!todo.length) return;
     todo.forEach((c) => (this.cards.get(c.id)!.pending = true));
     this.paintAll(found);
+    const chunks: JobCard[][] = [];
+    for (let i = 0; i < todo.length; i += CHUNK) chunks.push(todo.slice(i, i + CHUNK));
+    await Promise.all(chunks.map((ch) => this.scoreChunk(ch)));
+    // More unscored cards than one tick holds: keep going without waiting for a page change.
+    const all = this.adapter.cards(this.doc);
+    if (all.some((c) => { const st = this.cards.get(c.id); return st && !st.ai && !st.pending && !this.failed.has(c.id); })) this.schedule();
+  }
+
+  private async scoreChunk(todo: JobCard[]) {
     const t0 = Date.now();
     const r = await this.env.ask<CardResult[]>({
       type: "ai:cards",
@@ -192,8 +228,6 @@ export class JobsController {
     this.paintAll(this.adapter.cards(this.doc));
     this.obs?.observe(this.doc.body, { childList: true, subtree: true });
     if (!r.ok) this.paintSetup(r.error);
-    // More unscored cards than one batch holds: keep going without waiting for a page change.
-    else if (found.some((c) => { const st = this.cards.get(c.id); return st && !st.ai && !this.failed.has(c.id); })) this.schedule();
   }
 
   private paintSetup(message: string) {
@@ -214,23 +248,33 @@ export class JobsController {
     }
     renderJobPanel(this.doc, { kind: "loading", title: d.title, company: d.company, employer });
     const retry = () => { void this.rescore(); };
-    const intelP = d.company ? this.intel(d.company, d) : undefined;   // starts now, in parallel with the deep score
-    const t0 = Date.now();
-    const r = await this.env.ask<DeepResult>({ type: "ai:deep", detail: d, fresh: force });
-    const ms = Date.now() - t0;
-    console.debug(`[JobFill] deep score ${ms}ms`, r.ok ? { model: r.model, cached: r.cached } : r.error);
-    if (this.detailSig !== sig) return; // user moved to another job meanwhile
-    const paint = (intel?: IntelView) => renderJobPanel(this.doc, r.ok
-      ? { kind: "result", title: d.title, company: d.company, poster: d.poster, via: d.via, result: r.data, employer, model: r.model, cached: r.cached, ms, intel, onRetry: retry }
-      : { kind: "error", title: d.title, message: r.error, onRetry: retry });
-    paint(intelP ? { state: "loading" } : undefined);
-    if (r.ok && intelP) void intelP.then((v) => { if (this.detailSig === sig) paint(v); });
-    // A deep result is better than the card estimate for this listing: reflect it on the card too.
-    if (r.ok) {
+    const base = { title: d.title, company: d.company, poster: d.poster, via: d.via, employer, onRetry: retry };
+    let headline: Headline | undefined, deep: DeepResult | undefined, deepErr = "", ms: number | undefined, model: string | undefined, cached: boolean | undefined;
+    let intel: IntelView | undefined = d.company ? { state: "loading" } : undefined;
+    const paint = () => {
+      if (this.detailSig !== sig) return; // user moved to another job meanwhile
+      if (deep) renderJobPanel(this.doc, { kind: "result", ...base, result: deep, model, cached, ms, intel });
+      else if (headline) renderJobPanel(this.doc, { kind: "result", ...base, result: { ...headline, strengths: [], gaps: [], deal_breakers: [], red_flags: [] }, model, intel, refining: !deepErr, note: deepErr ? `Details failed: ${deepErr}` : undefined });
+      else if (deepErr) renderJobPanel(this.doc, { kind: "error", title: d.title, message: deepErr, onRetry: retry });
+    };
+    const reflect = (score: number, reason: string) => { // keep the listing card in step with what the panel says
       const same = this.adapter.cards(this.doc).find((c) => norm(c.title) === norm(d.title) && norm(c.company) === norm(d.company));
       const st = same && this.cards.get(same.id);
-      if (st) { st.ai = { id: same!.id, score: r.data.score, reason: r.data.summary }; void this.tick(); }
-    }
+      if (st) { st.ai = { id: same!.id, score, reason }; this.obs?.disconnect(); this.paintAll(this.adapter.cards(this.doc)); this.obs?.observe(this.doc.body, { childList: true, subtree: true }); }
+    };
+    // Three requests at once: a fast headline (seconds), the full analysis, and the employer briefing. Each paints as it lands.
+    if (d.company) void this.intel(d.company, d).then((v) => { intel = v; paint(); });
+    const t0 = Date.now();
+    void this.env.ask<Headline>({ type: "ai:headline", detail: d, fresh: force }).then((r) => {
+      console.debug(`[JobFill] headline ${Date.now() - t0}ms`);
+      if (!r.ok || deep) return;
+      headline = r.data; model = r.model; paint(); reflect(r.data.score, r.data.summary);
+    });
+    const r = await this.env.ask<DeepResult>({ type: "ai:deep", detail: d, fresh: force });
+    ms = Date.now() - t0;
+    console.debug(`[JobFill] deep score ${ms}ms`, r.ok ? { model: r.model, cached: r.cached } : r.error);
+    if (r.ok) { deep = r.data; model = r.model; cached = r.cached; paint(); reflect(r.data.score, r.data.summary); }
+    else { deepErr = r.error; paint(); }
   }
 
   private async rescore() { this.detailSig = ""; await this.syncDetail(true); }

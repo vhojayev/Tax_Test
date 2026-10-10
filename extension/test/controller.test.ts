@@ -71,9 +71,34 @@ describe("JobsController on Indeed-like page", () => {
     const e = env();
     const c = new JobsController(document, () => new URL("https://www.indeed.com/jobs?vjk=jk1"), indeed, e);
     await c.start(); await flush();
-    expect(e.ask.mock.calls.filter((a) => a[0].type === "ai:company")).toHaveLength(1);
+    const co = e.ask.mock.calls.filter((a) => a[0].type === "ai:company").map((a) => a[0].company);
+    expect(co).toHaveLength(3);                               // every employer on the page is looked up up front...
+    expect(new Set(co).size).toBe(3);                         // ...once each (the open job reuses its prefetch)
     expect(panelText()).toContain("Strong benefits");
     expect(panelText()).toContain("Slow promotions");
+    c.stop();
+  });
+
+  it("shows the fast headline first, then fills in details when the full analysis lands", async () => {
+    page("indeed");
+    let finish!: () => void;
+    const gate = new Promise<void>((r) => (finish = r));
+    const impl = async (m: any) => {
+      if (m.type === "ai:headline") return { ok: true, data: { score: 70, verdict: "good", summary: "Quick take.", employer_type: "direct", employer_reason: "" }, model: "h" };
+      if (m.type === "ai:deep") { await gate; return { ok: true, data: { ...deep, score: 60 }, model: "m" }; }
+      if (m.type === "ai:company") return { ok: true, data: intelData };
+      return { ok: true, data: m.cards.map((c: any) => ({ id: c.id, score: 50, reason: "r" })) };
+    };
+    const e = env({ ask: impl as any });
+    const c = new JobsController(document, () => new URL("https://www.indeed.com/jobs?vjk=jk1"), indeed, e);
+    await c.start(); await flush();
+    expect(panelText()).toContain("Quick take.");
+    expect(panelText()).toContain("analysing");
+    expect(panelText()).not.toContain("AP experience");
+    finish(); await flush();
+    expect(panelText()).toContain("AP experience");
+    expect(panelText()).not.toContain("analysing");
+    expect(chip(indeed.cards(document)[0].el)).toContain("60"); // score adjusted by the full analysis
     c.stop();
   });
 

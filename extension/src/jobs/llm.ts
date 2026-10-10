@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { z } from "zod";
 import type { Profile } from "../profile.js";
-import type { CardResult, CompanyIntel, DeepResult, JobDetail, Prefs } from "./types.js";
+import type { CardResult, CompanyIntel, DeepResult, Headline, JobDetail, Prefs } from "./types.js";
 
 export type LlmClient = Pick<Anthropic, "messages">;
 export const makeClient = (apiKey: string): LlmClient => new Anthropic({ apiKey, dangerouslyAllowBrowser: true });
@@ -72,6 +72,32 @@ export async function scoreDeep(
     messages: [{ role: "user", content: `Candidate:\n${JSON.stringify(matchingProfile(profile))}\n\nPreferences:\n${prefsText(prefs)}\n\n` +
       `Posting:\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\n${job.via ? `Shown via: ${job.via}\n` : ""}${job.poster ? `Posted by: ${job.poster}\n` : ""}\n${job.description.slice(0, 15000)}` }],
     output_config: { effort: "low", format: zodOutputFormat(DeepSchema) },
+  });
+  guard(res);
+  const d = res.parsed_output!;
+  return { ...d, score: clamp(d.score) };
+}
+
+const HeadlineSchema = z.object({
+  score: z.number(),
+  verdict: z.enum(["strong", "good", "stretch", "weak"]),
+  summary: z.string(),
+  employer_type: z.enum(["direct", "recruiter", "aggregator", "unclear"]),
+  employer_reason: z.string(),
+});
+
+/** Small, fast read of the open job (score + short summary + employer type); the detailed analysis follows separately. */
+export async function scoreHeadline(
+  client: LlmClient, model: string, profile: Profile, prefs: Prefs, job: Omit<JobDetail, "id"> & { id?: string },
+): Promise<Headline> {
+  const res = await client.messages.parse({
+    model, max_tokens: 600,
+    system: "You quickly judge how well a candidate fits one job posting, using only the candidate profile and the posting text. " +
+      "score 0-100 (80+ strong, 60-79 good, 40-59 stretch, below 40 weak) with matching verdict. summary: at most 2 short sentences on the fit. " +
+      "employer_type: 'recruiter' if a staffing/recruiting firm or the text speaks of 'our client'; 'aggregator' if a repost whose real employer is not identifiable; 'direct' if the hiring company posts it; else 'unclear'. employer_reason: under 15 words. Never invent facts about the candidate.",
+    messages: [{ role: "user", content: `Candidate:\n${JSON.stringify(matchingProfile(profile))}\n\nPreferences:\n${prefsText(prefs)}\n\n` +
+      `Posting:\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\n${job.via ? `Shown via: ${job.via}\n` : ""}\n${job.description.slice(0, 8000)}` }],
+    output_config: { effort: "low", format: zodOutputFormat(HeadlineSchema) },
   });
   guard(res);
   const d = res.parsed_output!;

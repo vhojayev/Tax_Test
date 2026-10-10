@@ -80,8 +80,18 @@ export interface DeepResult {
   employer_reason: string;
 }
 
+/** Fast first read of an open job: lets the panel show a score within seconds while the detailed analysis is still running. */
+export interface Headline {
+  score: number;
+  verdict: "strong" | "good" | "stretch" | "weak";
+  summary: string;
+  employer_type: EmployerType;
+  employer_reason: string;
+}
+
 export type Msg =
   | { type: "ai:cards"; cards: { id: string; title: string; company: string; location: string; snippet: string; via?: string; applyOptions?: string[] }[] }
   | { type: "ai:deep"; detail: Omit<JobDetail, "id"> & { id?: string }; fresh?: boolean }
+  | { type: "ai:headline"; detail: Omit<JobDetail, "id"> & { id?: string }; fresh?: boolean }
   | { type: "ai:company"; company: string; hint?: { title?: string; location?: string; via?: string }; fresh?: boolean };
 export type Reply<T> = { ok: true; data: T; cached?: boolean; model?: string } | { ok: false; error: string };
