@@ -1,11 +1,12 @@
 import { THEME } from "./theme.js";
-import type { DeepResult, Employer } from "../jobs/types.js";
+import { INTEL_CSS, renderIntel } from "./intel.js";
+import type { DeepResult, Employer, IntelView } from "../jobs/types.js";
 
 export type PanelState =
   | { kind: "setup"; message: string }
   | { kind: "loading"; title: string; company: string; employer: Employer }
   | { kind: "error"; title: string; message: string; onRetry: () => void }
-  | { kind: "result"; title: string; company: string; poster?: string; via?: string; result: DeepResult; employer: Employer; model?: string; cached?: boolean; onRetry: () => void };
+  | { kind: "result"; title: string; company: string; poster?: string; via?: string; result: DeepResult; employer: Employer; model?: string; cached?: boolean; intel?: IntelView; onRetry: () => void };
 
 const ID = "jobfill-job-panel";
 let collapsed = false;
@@ -61,7 +62,7 @@ export function renderJobPanel(doc: Document, st: PanelState) {
   const root = host(doc);
   root.replaceChildren();
   const style = el(doc, "style");
-  style.textContent = THEME + PANEL_CSS;
+  style.textContent = THEME + INTEL_CSS + PANEL_CSS;
   const wrap = el(doc, "div", "wrap");
   root.append(style, wrap);
 
@@ -130,6 +131,12 @@ export function renderJobPanel(doc: Document, st: PanelState) {
     body.append(a);
   }
   body.append(el(doc, "p", "sum", r.summary));
+
+  if (st.intel) {
+    const sec = el(doc, "div", "sec");
+    sec.append(el(doc, "h5", "", `About ${st.company}`), renderIntel(doc, st.intel));
+    body.append(sec);
+  }
 
   const list = (title: string, rows: { main: string; sub?: string }[], cls = "") => {
     if (!rows.length) return;

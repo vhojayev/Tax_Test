@@ -1,11 +1,12 @@
 import type { Profile } from "../profile.js";
-import type { Adapter, CardResult, DeepResult, JobCard, Msg, Prefs, Reply } from "./types.js";
+import type { Adapter, CardResult, CompanyIntel, DeepResult, IntelView, JobCard, Msg, Prefs, Reply } from "./types.js";
 import { DEFAULT_PREFS } from "./types.js";
 import { classifyEmployer } from "./employer.js";
 import { quickScore, tierOf } from "./quick.js";
 import { clearChip, renderChip } from "../ui/chip.js";
 import { clearJobPanel, renderJobPanel } from "../ui/jobpanel.js";
-import { hash } from "./dom.js";
+import { findLeaf, hash } from "./dom.js";
+import { hideHoverCard, showHoverCard } from "../ui/hovercard.js";
 
 export interface Env {
   ask<T>(msg: Msg): Promise<Reply<T>>;
@@ -15,6 +16,10 @@ export interface Env {
 const norm = (x: string) => x.toLowerCase().replace(/\s+/g, " ").trim();
 const BATCH = 20;
 const TICK_MS = 400;
+
+const HOVER_MS = 350;
+type Hint = { title?: string; location?: string; via?: string };
+type HoverCtx = Hint & { company: string };
 
 interface CardState { quick: { score: number; reason: string }; ai?: CardResult; pending?: boolean }
 
@@ -30,6 +35,9 @@ export class JobsController {
   private timer?: ReturnType<typeof setTimeout>;
   private styled = new WeakMap<HTMLElement, { shadow: string; radius: string; display: string }>();
   private listError = "";
+  private intelCache = new Map<string, Promise<IntelView>>();   // per company, so hover and panel share one request
+  private hoverCtx = new WeakMap<HTMLElement, HoverCtx>();
+  private hoverTimer?: ReturnType<typeof setTimeout>;
 
   constructor(private doc: Document, private url: () => URL, private adapter: Adapter, private env: Env) {}
 
@@ -49,6 +57,9 @@ export class JobsController {
     this.obs?.disconnect();
     for (const c of this.adapter.cards(this.doc)) { clearChip(c.el); this.unstyle(c.el); }
     clearJobPanel(this.doc);
+    hideHoverCard(this.doc);
+    clearTimeout(this.hoverTimer);
+    for (const e of Array.from(this.doc.querySelectorAll("[data-jobfill-hover]"))) e.removeAttribute("data-jobfill-hover");
   }
 
   /** Call after profile / prefs / key change. */
@@ -61,6 +72,7 @@ export class JobsController {
     this.failed.clear();
     this.detailSig = "";
     this.listError = "";
+    this.intelCache.clear();
   }
   async refresh() { await this.reload(); await this.tick(); }
 
@@ -94,7 +106,42 @@ export class JobsController {
         pending: !!st.pending,
       });
       this.style(c.el, tierOf(score), employer.type);
+      this.wireHover(c);
     }
+  }
+
+  /** Company briefing for a name: one request per company; failures are not cached. */
+  private intel(company: string, hint: Hint): Promise<IntelView> {
+    const k = norm(company);
+    let p = this.intelCache.get(k);
+    if (!p) {
+      p = this.env.ask<CompanyIntel>({ type: "ai:company", company, hint: { title: hint.title, location: hint.location, via: hint.via } })
+        .then((r): IntelView => (r.ok ? { state: "ok", intel: r.data, model: r.model } : { state: "error", message: r.error }));
+      this.intelCache.set(k, p);
+      void p.then((v) => { if (v.state === "error") this.intelCache.delete(k); });
+    }
+    return p;
+  }
+
+  /** Hover the company name on a card for a quick pros/cons briefing. */
+  private wireHover(c: JobCard) {
+    if (!this.hasKey || !c.company) return;
+    const target = findLeaf(c.el, c.company);
+    if (!target) return;
+    this.hoverCtx.set(target, { company: c.company, title: c.title, location: c.location, via: c.via });
+    if (target.hasAttribute("data-jobfill-hover")) return;
+    target.setAttribute("data-jobfill-hover", "1");
+    target.style.cursor = "help";
+    target.style.textDecoration = "underline dotted";
+    target.addEventListener("mouseenter", () => {
+      clearTimeout(this.hoverTimer);
+      this.hoverTimer = setTimeout(() => {
+        const ctx = this.hoverCtx.get(target)!;
+        showHoverCard(this.doc, target, ctx.company, { state: "loading" });
+        void this.intel(ctx.company, ctx).then((v) => { if (this.doc.getElementById("jobfill-hovercard")) showHoverCard(this.doc, target, ctx.company, v); });
+      }, HOVER_MS);
+    });
+    target.addEventListener("mouseleave", () => { clearTimeout(this.hoverTimer); hideHoverCard(this.doc, 200); });
   }
 
   /** Light up the listing itself: glow for strong, ring for possible, dim for weak, edge colour for recruiter/aggregator.
@@ -164,11 +211,14 @@ export class JobsController {
     }
     renderJobPanel(this.doc, { kind: "loading", title: d.title, company: d.company, employer });
     const retry = () => { void this.rescore(); };
+    const intelP = d.company ? this.intel(d.company, d) : undefined;   // starts now, in parallel with the deep score
     const r = await this.env.ask<DeepResult>({ type: "ai:deep", detail: d, fresh: force });
     if (this.detailSig !== sig) return; // user moved to another job meanwhile
-    renderJobPanel(this.doc, r.ok
-      ? { kind: "result", title: d.title, company: d.company, poster: d.poster, via: d.via, result: r.data, employer, model: r.model, cached: r.cached, onRetry: retry }
+    const paint = (intel?: IntelView) => renderJobPanel(this.doc, r.ok
+      ? { kind: "result", title: d.title, company: d.company, poster: d.poster, via: d.via, result: r.data, employer, model: r.model, cached: r.cached, intel, onRetry: retry }
       : { kind: "error", title: d.title, message: r.error, onRetry: retry });
+    paint(intelP ? { state: "loading" } : undefined);
+    if (r.ok && intelP) void intelP.then((v) => { if (this.detailSig === sig) paint(v); });
     // A deep result is better than the card estimate for this listing: reflect it on the card too.
     if (r.ok) {
       const same = this.adapter.cards(this.doc).find((c) => norm(c.title) === norm(d.title) && norm(c.company) === norm(d.company));

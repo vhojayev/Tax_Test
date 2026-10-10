@@ -9,6 +9,7 @@ import type { Msg } from "../src/jobs/types.js";
 
 const profile = { basics: { name: "J" }, work: [{ position: "Accounts Payable" }], skills: [{ name: "Accounting", keywords: ["NetSuite", "invoice coding"] }] };
 const deep = { score: 88, verdict: "strong", summary: "Solid AP fit.", strengths: [{ point: "AP experience", evidence: "5y AP" }], gaps: ["No SAP"], deal_breakers: [], red_flags: [], employer_type: "recruiter", employer_reason: "says our client" };
+const intelData = { known: true, confidence: "high", what_they_do: "Makes widgets.", size_hint: "~900 staff", hq: "Austin", pros: ["Strong benefits"], cons: ["Slow promotions"], reputation: "" };
 const page = (n: string) => { document.body.innerHTML = readFileSync(resolve(process.cwd(), `test/fixtures/${n}.html`), "utf8"); };
 const chip = (el: Element) => (el.querySelector("[data-jobfill-chip]") as HTMLElement).shadowRoot!.textContent ?? "";
 const panelText = () => document.getElementById("jobfill-job-panel")?.shadowRoot?.textContent ?? "";
@@ -17,7 +18,9 @@ function env(over: Partial<{ hasKey: boolean; hasProfile: boolean; ask: Env["ask
   const ask = vi.fn(over.ask ?? (async (m: Msg) =>
     m.type === "ai:cards"
       ? { ok: true, data: m.cards.map((c) => ({ id: c.id, score: /payable|ap /i.test(c.title) ? 91 : 8, reason: "ai" })) }
-      : { ok: true, data: deep, model: "m" })) as Env["ask"] & ReturnType<typeof vi.fn>;
+      : m.type === "ai:company"
+        ? { ok: true, data: intelData }
+        : { ok: true, data: deep, model: "m" })) as Env["ask"] & ReturnType<typeof vi.fn>;
   return { ask: ask as any, load: async () => ({ profile: over.hasProfile === false ? undefined : (profile as any), prefs: {}, hasKey: over.hasKey ?? true }) } as any;
 }
 const flush = async () => { for (let i = 0; i < 6; i++) await Promise.resolve(); };
@@ -60,6 +63,34 @@ describe("JobsController on Indeed-like page", () => {
     expect(panelText()).toContain("Solid AP fit.");
     expect(panelText()).toContain("RECRUITER");              // description says staffing firm + AI agrees
     expect(panelText()).toContain("AP experience");
+    c.stop();
+  });
+
+  it("fetches company intel for the open job and shows it in the panel", async () => {
+    page("indeed");
+    const e = env();
+    const c = new JobsController(document, () => new URL("https://www.indeed.com/jobs?vjk=jk1"), indeed, e);
+    await c.start(); await flush();
+    expect(e.ask.mock.calls.filter((a) => a[0].type === "ai:company")).toHaveLength(1);
+    expect(panelText()).toContain("Strong benefits");
+    expect(panelText()).toContain("Slow promotions");
+    c.stop();
+  });
+
+  it("shows a company hover card with pros and cons, requested once", async () => {
+    page("indeed");
+    const e = env();
+    const c = new JobsController(document, () => new URL("https://www.indeed.com/jobs"), indeed, e);
+    await c.start(); await flush();
+    const name = document.querySelector("[data-jobfill-hover]") as HTMLElement;
+    expect(name).toBeTruthy();
+    name.dispatchEvent(new Event("mouseenter"));
+    vi.advanceTimersByTime(400); await flush();
+    const card = document.getElementById("jobfill-hovercard")?.shadowRoot?.textContent ?? "";
+    expect(card).toContain("Strong benefits");
+    name.dispatchEvent(new Event("mouseleave"));
+    vi.advanceTimersByTime(300);
+    expect(document.getElementById("jobfill-hovercard")).toBeNull();
     c.stop();
   });
 

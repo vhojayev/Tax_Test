@@ -51,6 +51,26 @@ describe("handler", () => {
     expect(parse).toHaveBeenCalledTimes(1);
   });
 
+  it("briefs on a company without a profile, caches by name, and sends no user data", async () => {
+    const intel = { known: true, confidence: "medium", what_they_do: "x", size_hint: "", hq: "", pros: ["p"], cons: ["c"], reputation: "" };
+    const { client, parse } = fake(intel);
+    const store = mem({ settings: { apiKey: "k" } });                 // no profile imported
+    const r = await handle({ type: "ai:company", company: "Acme Corp" }, store, () => client);
+    expect(r).toMatchObject({ ok: true, data: { pros: ["p"] } });
+    const again = await handle({ type: "ai:company", company: "  acme   corp " }, store, () => client);
+    expect(again).toMatchObject({ ok: true, cached: true });
+    expect(parse).toHaveBeenCalledTimes(1);
+    expect(JSON.stringify(parse.mock.calls[0][0])).not.toContain("Accountant");
+  });
+
+  it("uses the web search tool for company intel when enabled", async () => {
+    const create = vi.fn().mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: 'Here: {"known":true,"confidence":"high","what_they_do":"w","size_hint":"","hq":"","pros":[],"cons":["c"],"reputation":""}' }] });
+    const client = { messages: { create } } as unknown as LlmClient;
+    const r = await handle({ type: "ai:company", company: "Acme" }, mem({ settings: { apiKey: "k", intelWeb: true } }), () => client);
+    expect(r).toMatchObject({ ok: true, data: { web: true, cons: ["c"] } });
+    expect(create.mock.calls[0][0].tools[0].name).toBe("web_search");
+  });
+
   it("maps API failures to readable messages", async () => {
     const parse = vi.fn().mockRejectedValue(Object.assign(new Error("x"), { status: 401 }));
     const r = await handle({ type: "ai:cards", cards }, mem({ settings: { apiKey: "k" }, profile }), () => ({ messages: { parse } }) as unknown as LlmClient);

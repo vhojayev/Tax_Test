@@ -47,8 +47,22 @@ export const DEFAULT_PREFS: Prefs = {
   flagRecruiters: "", flagAggregators: "", aiListings: true, dimWeak: true, hideRecruiters: false,
 };
 
-export interface Settings { apiKey: string; deepModel: string; listModel: string }
-export const DEFAULT_SETTINGS: Settings = { apiKey: "", deepModel: "claude-opus-5-5", listModel: "claude-haiku-5-5" };
+export interface Settings { apiKey: string; deepModel: string; listModel: string; intelWeb: boolean }
+export const DEFAULT_SETTINGS: Settings = { apiKey: "", deepModel: "claude-opus-5-5", listModel: "claude-haiku-5-5", intelWeb: false };
+
+/** Quick read on the hiring company. From the model's own knowledge unless web search is on, so it can be stale or thin. */
+export interface CompanyIntel {
+  known: boolean;                       // false: the model doesn't recognise the company and says so rather than guessing
+  confidence: "high" | "medium" | "low";
+  what_they_do: string;
+  size_hint: string;
+  hq: string;
+  pros: string[];
+  cons: string[];
+  reputation: string;
+  web?: boolean;                        // true when web search was used
+}
+export type IntelView = { state: "loading" } | { state: "error"; message: string } | { state: "ok"; intel: CompanyIntel; model?: string };
 
 export type EmployerType = "direct" | "recruiter" | "aggregator" | "unclear";
 export interface Employer { type: EmployerType; reasons: string[] }
@@ -68,5 +82,6 @@ export interface DeepResult {
 
 export type Msg =
   | { type: "ai:cards"; cards: { id: string; title: string; company: string; location: string; snippet: string; via?: string; applyOptions?: string[] }[] }
-  | { type: "ai:deep"; detail: Omit<JobDetail, "id"> & { id?: string }; fresh?: boolean };
+  | { type: "ai:deep"; detail: Omit<JobDetail, "id"> & { id?: string }; fresh?: boolean }
+  | { type: "ai:company"; company: string; hint?: { title?: string; location?: string; via?: string }; fresh?: boolean };
 export type Reply<T> = { ok: true; data: T; cached?: boolean; model?: string } | { ok: false; error: string };

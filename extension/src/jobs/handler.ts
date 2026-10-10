@@ -1,19 +1,22 @@
 import type { Profile } from "../profile.js";
 import { hash } from "./dom.js";
-import { makeClient, scoreCards, scoreDeep, type LlmClient } from "./llm.js";
-import { DEFAULT_PREFS, DEFAULT_SETTINGS, type CardResult, type DeepResult, type Msg, type Prefs, type Reply, type Settings } from "./types.js";
+import { companyIntel, makeClient, scoreCards, scoreDeep, type LlmClient } from "./llm.js";
+import { DEFAULT_PREFS, DEFAULT_SETTINGS, type CardResult, type CompanyIntel, type DeepResult, type Msg, type Prefs, type Reply, type Settings } from "./types.js";
 
 export interface Store { get(keys: string[]): Promise<Record<string, any>>; set(v: Record<string, any>): Promise<void> }
 
 const CACHE_MAX = 400;
 
 /** Runs in the service worker so the API key never enters a web page's context. */
-export async function handle(msg: Msg, store: Store, clientFor: (key: string) => LlmClient = makeClient): Promise<Reply<CardResult[] | DeepResult>> {
+export async function handle(msg: Msg, store: Store, clientFor: (key: string) => LlmClient = makeClient): Promise<Reply<CardResult[] | DeepResult | CompanyIntel>> {
   const s = await store.get(["settings", "profile", "prefs", "cache"]);
   const settings: Settings = { ...DEFAULT_SETTINGS, ...(s.settings ?? {}) };
   const prefs: Prefs = { ...DEFAULT_PREFS, ...(s.prefs ?? {}) };
   const profile: Profile | undefined = s.profile;
   if (!settings.apiKey) return { ok: false, error: "Add your Anthropic API key in JobFill settings." };
+  if (msg.type === "ai:company") { // about the company, not the user: needs no profile
+    try { return await intel(msg, settings, settings.deepModel, s.cache ?? {}, store, clientFor(settings.apiKey)); } catch (e) { return { ok: false, error: friendly(e) }; }
+  }
   if (!profile) return { ok: false, error: "Import your profile JSON first." };
 
   const model = msg.type === "ai:cards" ? settings.listModel : settings.deepModel;
@@ -52,6 +55,19 @@ export async function handle(msg: Msg, store: Store, clientFor: (key: string) =>
   } catch (e) {
     return { ok: false, error: friendly(e) };
   }
+}
+
+const normCo = (x: string) => x.toLowerCase().replace(/\s+/g, " ").trim();
+
+/** A company briefing is about the company, not the user: cached by company name, no profile involved. */
+async function intel(msg: Extract<Msg, { type: "ai:company" }>, settings: Settings, model: string, cache: Record<string, unknown>, store: Store, client: LlmClient): Promise<Reply<CompanyIntel>> {
+  const k = `i:${model}:${settings.intelWeb ? "w" : "k"}:${normCo(msg.company)}`;
+  const hitv = msg.fresh ? undefined : (cache[k] as CompanyIntel | undefined);
+  if (hitv) return { ok: true, data: hitv, cached: true, model };
+  const data = await companyIntel(client, model, msg.company, msg.hint, settings.intelWeb);
+  cache[k] = data;
+  await store.set({ cache: trim(cache) });
+  return { ok: true, data, model };
 }
 
 function trim(c: Record<string, unknown>) {

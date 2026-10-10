@@ -23,7 +23,7 @@ async function ping(settings: Settings): Promise<{ ok: boolean; error?: string }
 
 chrome.runtime.onMessage.addListener((msg: Msg | { type: "ai:ping"; settings: Settings }, _sender, send) => {
   if (msg?.type === "ai:ping") { void ping(msg.settings).then(send); return true; }
-  if (msg?.type !== "ai:cards" && msg?.type !== "ai:deep") return false;
+  if (msg?.type !== "ai:cards" && msg?.type !== "ai:deep" && msg?.type !== "ai:company") return false;
   handle(msg, store).then(send);
   return true; // async reply
 });

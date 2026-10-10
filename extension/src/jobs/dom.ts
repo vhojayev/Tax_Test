@@ -46,3 +46,17 @@ export function blockText(el: Element | DocumentFragment | null): string {
   walk(el);
   return out.join("").replace(/[ \t]+/g, " ").replace(/\n\s*\n+/g, "\n").trim();
 }
+
+/** Smallest element inside `root` whose own text is `text` (or starts with it, to allow a rating suffix): the visible company name. */
+export function findLeaf(root: HTMLElement, text: string): HTMLElement | null {
+  const want = clean(text).toLowerCase();
+  if (!want) return null;
+  let loose: HTMLElement | null = null;
+  for (const e of Array.from(root.querySelectorAll<HTMLElement>("*"))) {
+    if (e.closest("[data-jobfill-chip]") || (e.children.length > 0 && e.tagName !== "A" && e.tagName !== "SPAN")) continue;
+    const t = clean(e.textContent).toLowerCase();
+    if (t === want) return e;
+    if (!loose && t.startsWith(want) && t.length < want.length + 12) loose = e;
+  }
+  return loose;
+}

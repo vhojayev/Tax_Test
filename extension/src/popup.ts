@@ -56,11 +56,13 @@ async function loadSettings() {
   $<HTMLInputElement>("key").value = s.apiKey;
   $<HTMLSelectElement>("deepModel").value = s.deepModel;
   $<HTMLSelectElement>("listModel").value = s.listModel;
+  $<HTMLInputElement>("intelWeb").checked = s.intelWeb;
 }
 const readSettings = (): Settings => ({
   apiKey: $<HTMLInputElement>("key").value.trim(),
   deepModel: $<HTMLSelectElement>("deepModel").value,
   listModel: $<HTMLSelectElement>("listModel").value,
+  intelWeb: $<HTMLInputElement>("intelWeb").checked,
 });
 $("reveal").addEventListener("click", () => {
   const k = $<HTMLInputElement>("key");
