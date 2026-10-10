@@ -11,7 +11,7 @@ const store: Store = {
 async function ping(settings: Settings): Promise<{ ok: boolean; error?: string }> {
   const client = new Anthropic({ apiKey: settings.apiKey, dangerouslyAllowBrowser: true });
   try {
-    for (const m of new Set([settings.deepModel, settings.listModel])) await client.models.retrieve(m);
+    for (const m of new Set([settings.deepModel, settings.listModel, settings.intelModel])) await client.models.retrieve(m);
     return { ok: true };
   } catch (e) {
     const err = e as { status?: number; message?: string };

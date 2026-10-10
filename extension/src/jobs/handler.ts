@@ -15,7 +15,7 @@ export async function handle(msg: Msg, store: Store, clientFor: (key: string) =>
   const profile: Profile | undefined = s.profile;
   if (!settings.apiKey) return { ok: false, error: "Add your Anthropic API key in JobFill settings." };
   if (msg.type === "ai:company") { // about the company, not the user: needs no profile
-    try { return await intel(msg, settings, settings.deepModel, s.cache ?? {}, store, clientFor(settings.apiKey)); } catch (e) { return { ok: false, error: friendly(e) }; }
+    try { return await intel(msg, settings, settings.intelModel, s.cache ?? {}, store, clientFor(settings.apiKey)); } catch (e) { return { ok: false, error: friendly(e) }; }
   }
   if (!profile) return { ok: false, error: "Import your profile JSON first." };
 

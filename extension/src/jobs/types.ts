@@ -47,8 +47,8 @@ export const DEFAULT_PREFS: Prefs = {
   flagRecruiters: "", flagAggregators: "", aiListings: true, dimWeak: true, hideRecruiters: false,
 };
 
-export interface Settings { apiKey: string; deepModel: string; listModel: string; intelWeb: boolean }
-export const DEFAULT_SETTINGS: Settings = { apiKey: "", deepModel: "claude-opus-5-5", listModel: "claude-haiku-5-5", intelWeb: false };
+export interface Settings { apiKey: string; deepModel: string; listModel: string; intelModel: string; intelWeb: boolean }
+export const DEFAULT_SETTINGS: Settings = { apiKey: "", deepModel: "claude-opus-5-5", listModel: "claude-haiku-5-5", intelModel: "claude-sonnet-5-5", intelWeb: false };
 
 /** Quick read on the hiring company. From the model's own knowledge unless web search is on, so it can be stale or thin. */
 export interface CompanyIntel {

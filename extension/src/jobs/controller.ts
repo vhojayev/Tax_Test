@@ -115,8 +115,9 @@ export class JobsController {
     const k = norm(company);
     let p = this.intelCache.get(k);
     if (!p) {
+      const t0 = Date.now();
       p = this.env.ask<CompanyIntel>({ type: "ai:company", company, hint: { title: hint.title, location: hint.location, via: hint.via } })
-        .then((r): IntelView => (r.ok ? { state: "ok", intel: r.data, model: r.model } : { state: "error", message: r.error }));
+        .then((r): IntelView => (console.debug(`[JobFill] company info ${Date.now() - t0}ms`, r.ok ? r.model : r.error), r.ok ? { state: "ok", intel: r.data, model: r.model } : { state: "error", message: r.error }));
       this.intelCache.set(k, p);
       void p.then((v) => { if (v.state === "error") this.intelCache.delete(k); });
     }
