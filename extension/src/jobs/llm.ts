@@ -71,7 +71,7 @@ export async function scoreDeep(
       "Never invent facts about the candidate.",
     messages: [{ role: "user", content: `Candidate:\n${JSON.stringify(matchingProfile(profile))}\n\nPreferences:\n${prefsText(prefs)}\n\n` +
       `Posting:\nTitle: ${job.title}\nCompany: ${job.company}\nLocation: ${job.location}\n${job.via ? `Shown via: ${job.via}\n` : ""}${job.poster ? `Posted by: ${job.poster}\n` : ""}\n${job.description.slice(0, 15000)}` }],
-    output_config: { effort: "medium", format: zodOutputFormat(DeepSchema) },
+    output_config: { effort: "low", format: zodOutputFormat(DeepSchema) },
   });
   guard(res);
   const d = res.parsed_output!;

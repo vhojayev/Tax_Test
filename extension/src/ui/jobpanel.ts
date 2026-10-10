@@ -6,7 +6,7 @@ export type PanelState =
   | { kind: "setup"; message: string }
   | { kind: "loading"; title: string; company: string; employer: Employer }
   | { kind: "error"; title: string; message: string; onRetry: () => void }
-  | { kind: "result"; title: string; company: string; poster?: string; via?: string; result: DeepResult; employer: Employer; model?: string; cached?: boolean; intel?: IntelView; onRetry: () => void };
+  | { kind: "result"; title: string; company: string; poster?: string; via?: string; result: DeepResult; employer: Employer; model?: string; cached?: boolean; ms?: number; intel?: IntelView; onRetry: () => void };
 
 const ID = "jobfill-job-panel";
 let collapsed = false;
@@ -161,7 +161,7 @@ export function renderJobPanel(doc: Document, st: PanelState) {
   list("Watch out", r.red_flags.map((g) => ({ main: g })));
 
   const foot = el(doc, "div", "foot");
-  foot.append(el(doc, "span", "", `${st.cached ? "cached · " : ""}${st.model ?? ""}`));
+  foot.append(el(doc, "span", "", `${st.cached ? "cached · " : ""}${st.model ?? ""}${st.ms && !st.cached ? ` · ${(st.ms / 1000).toFixed(1)}s` : ""}`));
   const again = el(doc, "button", "x", "↻ re-score");
   again.addEventListener("click", st.onRetry);
   foot.append(again);

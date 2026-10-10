@@ -173,11 +173,13 @@ export class JobsController {
     if (!todo.length) return;
     todo.forEach((c) => (this.cards.get(c.id)!.pending = true));
     this.paintAll(found);
+    const t0 = Date.now();
     const r = await this.env.ask<CardResult[]>({
       type: "ai:cards",
       cards: todo.map((c) => ({ id: c.id, title: c.title, company: c.company, location: c.location, snippet: c.snippet.slice(0, 600), via: c.via, applyOptions: c.applyOptions })),
     });
     for (const c of todo) this.cards.get(c.id)!.pending = false;
+    console.debug(`[JobFill] ${todo.length} cards scored in ${Date.now() - t0}ms`);
     if (r.ok) {
       for (const res of r.data) { const s = this.cards.get(res.id); if (s) s.ai = res; }
       this.listError = "";
@@ -212,10 +214,13 @@ export class JobsController {
     renderJobPanel(this.doc, { kind: "loading", title: d.title, company: d.company, employer });
     const retry = () => { void this.rescore(); };
     const intelP = d.company ? this.intel(d.company, d) : undefined;   // starts now, in parallel with the deep score
+    const t0 = Date.now();
     const r = await this.env.ask<DeepResult>({ type: "ai:deep", detail: d, fresh: force });
+    const ms = Date.now() - t0;
+    console.debug(`[JobFill] deep score ${ms}ms`, r.ok ? { model: r.model, cached: r.cached } : r.error);
     if (this.detailSig !== sig) return; // user moved to another job meanwhile
     const paint = (intel?: IntelView) => renderJobPanel(this.doc, r.ok
-      ? { kind: "result", title: d.title, company: d.company, poster: d.poster, via: d.via, result: r.data, employer, model: r.model, cached: r.cached, intel, onRetry: retry }
+      ? { kind: "result", title: d.title, company: d.company, poster: d.poster, via: d.via, result: r.data, employer, model: r.model, cached: r.cached, ms, intel, onRetry: retry }
       : { kind: "error", title: d.title, message: r.error, onRetry: retry });
     paint(intelP ? { state: "loading" } : undefined);
     if (r.ok && intelP) void intelP.then((v) => { if (this.detailSig === sig) paint(v); });
