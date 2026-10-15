@@ -71,7 +71,13 @@ function sduiDetail(doc: Document, url: URL): JobDetail | null {
   if (!root || !about) return null;
   const box = about.querySelector('[data-testid="expandable-text-box"]') ?? about;
   const copy = box.cloneNode(true) as Element;
-  copy.querySelectorAll("button").forEach((b) => b.remove()); // the "… more" toggle
+  copy.querySelectorAll(box === about ? "button,h1,h2,h3" : "button").forEach((b) => b.remove()); // the "… more" toggle (and the heading, if we took the whole section)
+  let description = blockText(copy);
+  if (!description && box !== about) { // markup shifted: fall back to the whole section minus its heading
+    const whole = about.cloneNode(true) as Element;
+    whole.querySelectorAll("button,h1,h2,h3").forEach((n) => n.remove());
+    description = blockText(whole);
+  }
   const titleLink = root.querySelector<HTMLAnchorElement>('a[href*="/jobs/view/"]');
   const company = Array.from(root.querySelectorAll('a[href*="/company/"]')).map((a) => clean(a.textContent)).find(Boolean) ?? "";
   const meta = ps(root).find((p) => /ago|applicant|clicked apply/i.test(p.textContent ?? "") && p.querySelector("span"));
@@ -80,7 +86,7 @@ function sduiDetail(doc: Document, url: URL): JobDetail | null {
     id: titleLink?.getAttribute("href")?.match(/\/jobs\/view\/(\d+)/)?.[1] ?? about.id.match(/(\d+)$/)?.[1],
     title: clean(titleLink?.textContent), company,
     location: clean(meta?.querySelector("span")?.textContent),
-    description: blockText(copy), poster, url: url.href,
+    description, poster, url: url.href,
   };
 }
 

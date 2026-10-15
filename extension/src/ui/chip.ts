@@ -28,6 +28,7 @@ function pill(doc: Document, cls: string, text: string, title?: string) {
 /** Compact status row pinned to the bottom-right of a listing card. */
 export function renderChip(doc: Document, card: HTMLElement, st: ChipState) {
   let host = card.querySelector<HTMLElement>(`[${CHIP_ATTR}]`);
+  if (host && !host.shadowRoot) { host.remove(); host = null; } // stale/inert copy (e.g. restored from a saved page)
   if (!host) {
     host = doc.createElement("div");
     host.setAttribute(CHIP_ATTR, "1");

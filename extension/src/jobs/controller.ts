@@ -68,6 +68,18 @@ export class JobsController {
     for (const e of Array.from(this.doc.querySelectorAll("[data-jobfill-hover]"))) e.removeAttribute("data-jobfill-hover");
   }
 
+  /** For the popup: is this page being handled, and how much did we find? */
+  status() {
+    return {
+      site: this.adapter.name,
+      listings: this.adapter.cards(this.doc).length,
+      tagged: this.doc.querySelectorAll("[data-jobfill-chip]").length,
+      hasProfile: !!this.profile,
+      hasKey: this.hasKey,
+      detail: !!this.adapter.detail(this.doc, this.url()),
+    };
+  }
+
   /** Call after profile / prefs / key change. */
   async reload() {
     const s = await this.env.load();

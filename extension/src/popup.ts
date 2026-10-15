@@ -159,4 +159,26 @@ $("snap").addEventListener("click", async () => {
   } catch (err) { toast(`Snapshot failed: ${(err as Error).message}`); }
 });
 
-void Promise.all([loadPrefs(), loadSettings(), status()]);
+// ---- is JobFill active on this tab?
+async function pageStatus() {
+  const dot = $("page-dot"), text = $("page-text");
+  const set = (cls: string, t: string) => { dot.className = `dot-s ${cls}`; text.textContent = t; };
+  try {
+    const tab = await activeTab();
+    const url = new URL(tab.url ?? "");
+    const jobSite = /(^|\.)indeed\.com$|(^|\.)linkedin\.com$|^www\.google\.com$/.test(url.hostname);
+    let r: any;
+    try { r = await chrome.tabs.sendMessage(tab.id!, { type: "jobs:status" }); } catch { r = undefined; }
+    if (!r) return set(jobSite ? "bad" : "", jobSite
+      ? "JobFill isn't running on this tab. Refresh the page (needed after the extension is updated or reloaded)."
+      : "Not a job-board page. Open Indeed, LinkedIn Jobs or Google Jobs results.");
+    if (r.error) return set("bad", `Failed to start on this page: ${r.error}`);
+    if (!r.supported) return set("", "This page isn't a job results page JobFill reads. Try a search results page.");
+    if (!r.running) return set("warn", "Turned off. Switch on “Highlight & score listings” below.");
+    const missing = [!r.hasProfile && "import your profile", !r.hasKey && "add your API key"].filter(Boolean).join(" and ");
+    if (r.listings === 0) return set("warn", `Running on ${r.site}, but no job listings were recognised on this page yet. If listings are visible, download a page snapshot (Setup tab) and send it to me.`);
+    set(missing ? "warn" : "ok", `Active on ${r.site}: ${r.listings} listings found, ${r.tagged} tagged${r.detail ? ", open job detected" : ""}.${missing ? ` To score them, ${missing}.` : ""}`);
+  } catch { set("", "Open a job-search page to use JobFill."); }
+}
+
+void Promise.all([loadPrefs(), loadSettings(), status(), pageStatus()]);
