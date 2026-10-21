@@ -108,11 +108,54 @@
     cycling: { name: 'Cycling routes', layer: L.tileLayer('https://tile.waymarkedtrails.org/cycling/{z}/{x}/{y}.png', { maxZoom: 18, attribution: 'Waymarked Trails' }) }
   };
 
+  // Schools: US public schools from NCES, loaded for the visible area (zoom 12+)
+  var NCES = 'https://nces.ed.gov/opengis/rest/services/K12_School_Locations/EDGE_GEOCODE_PUBLICSCH_2223/MapServer/0/query';
+  var schoolGroup = L.layerGroup();
+  var schoolSeq = 0;
+  var toast = document.createElement('div');
+  toast.style.cssText = 'position:absolute;z-index:1050;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));background:#1a232c;border:1px solid #2c3a47;border-radius:10px;padding:8px 12px;font-size:13px;display:none';
+  document.body.appendChild(toast);
+  function say(t) { toast.textContent = t; toast.style.display = t ? 'block' : 'none'; }
+  function levelColor(l) {
+    l = String(l || '').toLowerCase();
+    return l.indexOf('high') > -1 ? '#ff7a59' : l.indexOf('middle') > -1 ? '#f5c542' : l.indexOf('elem') > -1 || l.indexOf('prim') > -1 ? '#3ecf8e' : '#8fa1b0';
+  }
+  function loadSchools() {
+    if (!map.hasLayer(schoolGroup)) { say(''); return; }
+    if (map.getZoom() < 12) { schoolGroup.clearLayers(); say('Zoom in to see schools'); return; }
+    var b = map.getBounds(), seq = ++schoolSeq;
+    var url = NCES + '?f=json&where=1%3D1&outFields=*&returnGeometry=true&outSR=4326&inSR=4326&spatialRel=esriSpatialRelIntersects&resultRecordCount=500' +
+      '&geometryType=esriGeometryEnvelope&geometry=' + [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()].join(',');
+    say('Loading schools…');
+    fetch(url).then(function (r) { return r.json(); }).then(function (d) {
+      if (seq !== schoolSeq) return;
+      if (!d.features) throw new Error('bad response');
+      schoolGroup.clearLayers();
+      d.features.forEach(function (f) {
+        var a = f.attributes || {}, g = f.geometry; if (!g) return;
+        var name = a.NAME || a.SCH_NAME || 'School', city = a.CITY || a.LCITY || '', st = a.STATE || a.LSTATE || '';
+        var level = a.LEVEL || a.SCHOOL_LEVEL || '';
+        var html = '<b>' + esc(name) + '</b><br>' + esc([a.STREET || a.LSTREET1, city, st].filter(Boolean).join(', ')) +
+          (level ? '<br>Level: ' + esc(level) : '') +
+          (a.ENROLLMENT || a.MEMBER ? '<br>Students: ' + esc(a.ENROLLMENT || a.MEMBER) : '') +
+          '<br><a href="https://www.greatschools.org/search/search.page?q=' + encodeURIComponent([name, city, st].join(' ')) + '" target="_blank" rel="noopener">View rating on GreatSchools</a>';
+        L.circleMarker([g.y, g.x], { radius: 7, color: '#10161c', weight: 2, fillColor: levelColor(level), fillOpacity: 1 }).bindPopup(html).addTo(schoolGroup);
+      });
+      say(d.exceededTransferLimit ? 'Showing first 500 schools. Zoom in for more.' : (d.features.length ? '' : 'No schools in this view'));
+    }).catch(function () { if (seq === schoolSeq) say('Could not load schools. Check connection.'); });
+  }
+  schoolGroup.on('add', loadSchools);
+  schoolGroup.on('remove', function () { say(''); });
+  map.on('moveend', loadSchools);
+  overlays.schools = { name: 'Schools (US public)', layer: schoolGroup };
+
   var customs = store.get('customs', []);
   customs.forEach(function (c, i) { overlays['c' + i] = { name: c.name, custom: true, layer: L.tileLayer(c.url, { maxZoom: 20 }) }; });
 
   var state = store.get('state', { base: 'street', on: ['flood'], opacity: {} });
   var pinsLayer = L.layerGroup().addTo(map);
+  // esc() is declared below with the pin helpers; hoisted so schools can use it
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var activeBase = null;
 
   function setBase(key) {
