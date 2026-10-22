@@ -1,2 +1,7 @@
 
 oracle/intake/
+oracle/export/
+conversations.json
+projects.json
+users.json
+*.zip
