@@ -38,7 +38,7 @@ def msg_text(m):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("src"); ap.add_argument("-o", default="oracle/intake")
-    ap.add_argument("--chars", type=int, default=600, help="chars kept per key message")
+    ap.add_argument("--chars", type=int, default=350, help="chars kept per key message")
     a = ap.parse_args()
     p = Path(a.src)
     convs, memories = [], []
@@ -69,6 +69,7 @@ def main():
         rows.append(
             f"## {clean(c.get('name') or '(untitled)')}\n"
             f"- date: {c.get('created_at','')[:10]} · turns: {len(msgs)} · topics: {', '.join(topics) or '-'}\n"
+            f"- summary: {clean(c.get('summary') or '')[:a.chars]}\n"
             f"- user opened with: {(human[0] if human else '')[:a.chars]}\n"
             f"- user last said: {(human[-1] if human else '')[:a.chars]}\n"
             f"- assistant last said: {(asst[-1] if asst else '')[:a.chars]}\n"
