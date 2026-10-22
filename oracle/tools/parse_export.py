@@ -41,8 +41,22 @@ def main():
     ap.add_argument("--chars", type=int, default=600, help="chars kept per key message")
     a = ap.parse_args()
     p = Path(a.src)
-    conv_path = p if p.is_file() else p / "conversations.json"
-    convs = json.loads(conv_path.read_text(encoding="utf-8"))
+    convs, memories = [], []
+    files = [p] if p.is_file() else sorted(f for f in p.rglob("*") if f.suffix in (".json", ".jsonl"))
+    for f in files:
+        try:
+            txt = f.read_text(encoding="utf-8")
+            data = [json.loads(l) for l in txt.splitlines() if l.strip()] if f.suffix == ".jsonl" else json.loads(txt)
+        except Exception as e:
+            print(f"skip {f}: {e}", file=sys.stderr); continue
+        items = data if isinstance(data, list) else data.get("conversations", [data]) if isinstance(data, dict) else []
+        for it in items:
+            if isinstance(it, dict) and "chat_messages" in it:
+                convs.append(it)
+            elif "memor" in f.name.lower() and isinstance(it, (dict, str)):
+                memories.append(it)
+    if not convs:
+        sys.exit("no conversations found (looked for objects with 'chat_messages'); send the file list and a redacted sample")
     out = Path(a.o); out.mkdir(parents=True, exist_ok=True)
     rows, tally = [], Counter()
     for c in sorted(convs, key=lambda c: c.get("created_at", "")):
@@ -62,6 +76,9 @@ def main():
     (out / "digest.md").write_text(f"# Chat export digest ({len(convs)} conversations)\n\n" + "\n".join(rows), encoding="utf-8")
     (out / "stats.json").write_text(json.dumps({"conversations": len(convs), "topics": tally}, indent=2), encoding="utf-8")
     print(f"{len(convs)} conversations -> {out/'digest.md'}")
+    if memories:
+        (out / "memories.md").write_text("# Memories\n" + "\n".join("- " + clean(json.dumps(m) if isinstance(m, dict) else m)[:500] for m in memories), encoding="utf-8")
+        print(f"{len(memories)} memory items -> {out/'memories.md'}")
     projects = (p if p.is_dir() else p.parent) / "projects.json"
     if projects.exists():
         pj = json.loads(projects.read_text(encoding="utf-8"))
