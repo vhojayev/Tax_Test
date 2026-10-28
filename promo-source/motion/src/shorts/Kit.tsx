@@ -21,7 +21,7 @@ export const Panel: React.FC<{ children: React.ReactNode; accent?: string }> = (
 /** dark area under the tab strip + big counter, for the opening "too many tabs" beat */
 export const HookPain: React.FC<{ frames: number; from?: number; to?: number }> = ({ frames, from = 12, to = 45 }) => (
   <Sequence from={0} durationInFrames={frames + 6}>
-    <div style={{ position: 'absolute', left: PANEL.x, top: PANEL.y + 150, width: PANEL.w, height: PANEL.h - 150, background: 'linear-gradient(180deg, rgba(5,8,18,0) 0%, rgba(5,8,18,.97) 14%, #05070d 100%)', borderRadius: '0 0 30px 30px' }} />
+    <div style={{ position: 'absolute', left: PANEL.x, top: PANEL.y + 150, width: PANEL.w, height: PANEL.h - 150, background: 'linear-gradient(180deg, rgba(5,8,18,0) 0%, rgba(5,8,18,1) 7%, #05070d 100%)', borderRadius: '0 0 30px 30px' }} />
     <Count from={from} to={to} at={4} dur={Math.max(24, frames - 24)} x={150} y={PANEL.y + 330} size={250} label="tabs" />
   </Sequence>);
 
