@@ -7,9 +7,10 @@ import { Site, SITE_FRAMES } from './scenes/Site';
 import { Dupes, DUPES_FRAMES } from './scenes/Dupes';
 import { MapScene, MAP_FRAMES } from './scenes/MapScene';
 import { End, END_FRAMES } from './scenes/End';
-export const OV = 9;   // frames each scene overlaps the previous one
+import { Intro, INTRO_FRAMES } from './scenes/Intro';
+export const OV = 6;   // frames each scene overlaps the previous one
 export const SCENES = [
-  { id: 'hook', C: Hook, d: HOOK_FRAMES }, { id: 'find', C: Find, d: FIND_FRAMES }, { id: 'group', C: Group, d: GROUP_FRAMES },
+  { id: 'hook', C: Hook, d: HOOK_FRAMES }, { id: 'intro', C: Intro, d: INTRO_FRAMES }, { id: 'find', C: Find, d: FIND_FRAMES }, { id: 'group', C: Group, d: GROUP_FRAMES },
   { id: 'site', C: Site, d: SITE_FRAMES }, { id: 'dupes', C: Dupes, d: DUPES_FRAMES }, { id: 'map', C: MapScene, d: MAP_FRAMES }, { id: 'end', C: End, d: END_FRAMES },
 ];
 export const starts = (() => { let s = 0; return SCENES.map(sc => { const a = s; s += sc.d - OV; return a; }); })();
