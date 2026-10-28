@@ -12,8 +12,8 @@ export function camAt(keys: CamKey[], t: number) {
   }
   return keys[keys.length - 1];
 }
-export const Camera: React.FC<{ keys: CamKey[]; children: React.ReactNode; w?: number; h?: number }> = ({ keys, children, w, h }) => {
-  const frame = useCurrentFrame(); const { fps, width, height } = useVideoConfig(); const W = w ?? width, H = h ?? height;
+export const Camera: React.FC<{ keys: CamKey[]; children: React.ReactNode; w?: number; h?: number; viewW?: number; viewH?: number }> = ({ keys, children, w, h, viewW, viewH }) => {
+  const frame = useCurrentFrame(); const { fps, width: cw, height: ch } = useVideoConfig(); const width = viewW ?? cw, height = viewH ?? ch; const W = w ?? 1920, H = h ?? 1080;
   const c = camAt(keys, frame / fps);
   const tx = clamp(width / 2 - c.cx * c.s, width - W * c.s, 0), ty = clamp(height / 2 - c.cy * c.s, height - H * c.s, 0);
   return (<AbsoluteFill style={{ overflow: 'hidden' }}>
