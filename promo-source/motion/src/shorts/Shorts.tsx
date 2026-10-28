@@ -9,7 +9,7 @@ import { Sfx } from '../components/Sfx';
 import { plan } from '../lib/plan';
 import { ev } from '../lib/ev';
 import { C } from '../theme';
-import { CTA_FRAMES, Headlines, Line, Panel, PANEL, Short, Slot } from './Kit';
+import { CTA_FRAMES, Headlines, HookPain, Line, Panel, PANEL, Short, Slot } from './Kit';
 
 const FPS = 30;
 const W = (t: string, c?: string, mark?: string) => ({ t, c, mark });
@@ -23,10 +23,10 @@ export const Short1: React.FC = () => {
   const oT = (s: number) => (PH1.total + PT1.srcToOut(s) * FPS);       // frames
   const mi = ev('topic', 'menu-item');
   const keys = [
-    { t: 0, cx: 700, cy: 410, s: 0.8 }, { t: PH1.total / FPS, cx: 1250, cy: 410, s: 0.8 },
+    { t: 0, cx: 650, cy: 300, s: 1.3 }, { t: PH1.total / FPS, cx: 1250, cy: 300, s: 1.3 },
     { t: oT(2.1) / FPS, cx: mi.x - 150, cy: mi.y - 40, s: 1.35 }, { t: oT(4.0) / FPS, cx: mi.x - 150, cy: mi.y - 40, s: 1.35 },
-    { t: oT(4.5) / FPS, cx: 480, cy: 300, s: 2.0 }, { t: oT(6.4) / FPS, cx: 1440, cy: 300, s: 2.0 }, { t: oT(7.0) / FPS, cx: 1440, cy: 300, s: 2.0 },
-    { t: oT(7.6) / FPS, cx: 960, cy: 320, s: 1.2 }, { t: BODY1 / FPS, cx: 960, cy: 320, s: 1.2 }];
+    { t: oT(4.5) / FPS, cx: 480, cy: 200, s: 2.0 }, { t: oT(6.4) / FPS, cx: 1440, cy: 200, s: 2.0 }, { t: oT(7.0) / FPS, cx: 1440, cy: 200, s: 2.0 },
+    { t: oT(7.6) / FPS, cx: 960, cy: 300, s: 1.35 }, { t: BODY1 / FPS, cx: 960, cy: 300, s: 1.35 }];
   const slots: Slot[] = [
     { from: 0, to: Math.round(PH1.total), lines: [[W('Too'), W('many'), W('tabs?', C.coral)]] },
     { from: Math.round(PH1.total), to: Math.round(oT(4.4)), lines: [[W('One', C.ink), W('click.', C.mint)]] },
@@ -42,6 +42,7 @@ export const Short1: React.FC = () => {
             <Callout x={mi.x} y={mi.y} r={26} inAt={Math.round(PT1.srcToOut(3.0) * FPS)} outAt={Math.round(PT1.srcToOut(4.2) * FPS)} /></Sequence>
         </Camera>
       </Panel>
+      <HookPain frames={Math.round(PH1.total)} />
       <Line text="Real Chrome tab bar. One click." inAt={Math.round(oT(4.5))} outAt={Math.round(oT(7.5))} />
       <Line text="Changed your mind? Undo." inAt={Math.round(oT(7.6))} color={C.sky} />
       <Sfx cues={[{ n: 'tickrun', f: 8, v: 0.45 }, { n: 'click', f: Math.round(PH1.srcToOut(ev('hook', 'tab-click', 0).t) * FPS), v: 0.7 }, { n: 'click', f: Math.round(PH1.srcToOut(ev('hook', 'tab-click', 1).t) * FPS), v: 0.7 },
@@ -58,7 +59,7 @@ export const S2_FRAMES = BODY2 + CTA_FRAMES;
 export const Short2: React.FC = () => {
   const oF = (s: number) => PH2.total + PF2.srcToOut(s) * FPS;
   const pf = ev('find', 'popup-find'), pr = ev('find', 'popup-row');
-  const keys = [{ t: 0, cx: 800, cy: 410, s: 0.8 }, { t: PH2.total / FPS, cx: 1200, cy: 410, s: 0.8 },
+  const keys = [{ t: 0, cx: 800, cy: 300, s: 1.3 }, { t: PH2.total / FPS, cx: 1200, cy: 300, s: 1.3 },
     { t: oF(2.3) / FPS, cx: 1500, cy: 330, s: 1.6 }, { t: oF(7.5) / FPS, cx: 1500, cy: 330, s: 1.6 }, { t: BODY2 / FPS, cx: 960, cy: 410, s: 1.0 }];
   const slots: Slot[] = [
     { from: 0, to: Math.round(PH2.total), lines: [[W('Which'), W('tab')], [W('was'), W('it?', C.coral)]], size: 118 },
@@ -74,6 +75,7 @@ export const Short2: React.FC = () => {
             <Callout x={pr.x} y={pr.y} r={34} inAt={Math.round(PF2.srcToOut(5.7) * FPS)} outAt={Math.round(PF2.srcToOut(6.9) * FPS)} /></Sequence>
         </Camera>
       </Panel>
+      <HookPain frames={Math.round(PH2.total)} />
       <Line text="Results arrive grouped by topic." inAt={Math.round(oF(4.4))} outAt={Math.round(oF(7.0))} />
       <Sfx cues={[{ n: 'click', f: Math.round(oF(ev('find', 'popup-open').t) - 3), v: 0.7 }, { n: 'pop', f: Math.round(oF(ev('find', 'popup-open').t)), v: 0.5 },
         ...Array.from({ length: 9 }, (_, i) => ({ n: 'key', f: Math.round(oF(ev('find', 'popup-find').t + 0.15 + i * 0.105)), v: 0.45 })),
@@ -88,7 +90,7 @@ export const S3_FRAMES = BODY3 + CTA_FRAMES;
 export const Short3: React.FC = () => {
   const o = (s: number) => PD3.srcToOut(s) * FPS;
   const ch = ev('dupes', 'chip');
-  const keys = [{ t: 0, cx: 880, cy: 330, s: 1.3 }, { t: BODY3 / FPS, cx: 880, cy: 330, s: 1.3 }];
+  const keys = [{ t: 0, cx: 880, cy: 260, s: 1.6 }, { t: BODY3 / FPS, cx: 880, cy: 260, s: 1.6 }];
   const slots: Slot[] = [
     { from: 0, to: Math.round(o(2.5)), lines: [[W('Duplicate'), W('tabs?', C.rose)]], size: 118 },
     { from: Math.round(o(2.5)), to: Math.round(o(5.0)), lines: [[W('One'), W('click.', C.rose)]] },

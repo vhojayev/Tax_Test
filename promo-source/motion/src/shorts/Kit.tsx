@@ -1,7 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { C, E, F } from '../theme';
-import { Headline, Word } from '../components/Type';
+import { Count, Headline, Word } from '../components/Type';
 import { Sfx, Cue } from '../components/Sfx';
 
 export const VW = 1080, VH = 1920, PANEL = { x: 40, y: 560, w: 1000, h: 820 };
@@ -17,6 +17,13 @@ export const Headlines: React.FC<{ slots: Slot[] }> = ({ slots }) => (<>{slots.m
 /** rounded panel holding the real-Chrome footage */
 export const Panel: React.FC<{ children: React.ReactNode; accent?: string }> = ({ children, accent = C.mint }) => (
   <div style={{ position: 'absolute', left: PANEL.x, top: PANEL.y, width: PANEL.w, height: PANEL.h, borderRadius: 30, overflow: 'hidden', background: '#05070d', boxShadow: `0 30px 90px rgba(0,0,0,.65), 0 0 0 3px ${accent}66` }}>{children}</div>);
+
+/** dark area under the tab strip + big counter, for the opening "too many tabs" beat */
+export const HookPain: React.FC<{ frames: number; from?: number; to?: number }> = ({ frames, from = 12, to = 45 }) => (
+  <Sequence from={0} durationInFrames={frames + 6}>
+    <div style={{ position: 'absolute', left: PANEL.x, top: PANEL.y + 150, width: PANEL.w, height: PANEL.h - 150, background: 'linear-gradient(180deg, rgba(5,8,18,0) 0%, rgba(5,8,18,.97) 14%, #05070d 100%)', borderRadius: '0 0 30px 30px' }} />
+    <Count from={from} to={to} at={4} dur={Math.max(24, frames - 24)} x={150} y={PANEL.y + 330} size={250} label="tabs" />
+  </Sequence>);
 
 /** one-line caption under the panel */
 export const Line: React.FC<{ text: string; inAt: number; outAt?: number; color?: string }> = ({ text, inAt, outAt, color = C.dim }) => {
