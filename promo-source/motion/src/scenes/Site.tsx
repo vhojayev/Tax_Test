@@ -31,7 +31,7 @@ export const Site: React.FC = () => {
           <Frame x={14} y={2} w={1892} h={38} inAt={f(4.5)} outAt={f(7.7)} color={C.mint} radius={10} />
         </Camera>
         <Chip kicker="Group" text="Click “Group each site”." inAt={f(2.5)} outAt={f(4.5)} color={C.coral} />
-        <Tag text="One group for every website" inAt={f(4.6)} outAt={f(7.8)} color={C.mint} y={170} />
+        <Tag text="One group for every website" inAt={f(4.6)} outAt={f(7.8)} color={C.mint} y={300} />
         <Sfx cues={[{ n: 'pop', f: f(ev(S, 'menu-open', 0).t), v: 0.5 }, { n: 'click', f: f(ev(S, 'menu-click', 0).t), v: 0.8 }, { n: 'swoosh', f: f(ev(S, 'menu-click', 0).t + 0.1), v: 0.5 }, { n: 'chime', f: f(ev(S, 'menu-click', 0).t + 0.9), v: 0.5 }, { n: 'rewind', f: f(ev(S, 'undo-click', 0).t), v: 0.6 }, { n: 'rewind', f: f(ev(S, 'undo-click', 0).t), v: 0.6 }]} />
       </Sequence>
       <Sfx cues={[{ n: 'whoosh', f: 0, v: 0.5 }, { n: 'ding', f: 14, v: 0.4 }]} />

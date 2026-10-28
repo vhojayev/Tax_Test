@@ -105,6 +105,7 @@ const K = 4 / 3, TAB0 = 56, PITCH = 39.04, STRIP_Y = 20;               // tab-st
   const bubble = async (needle) => { const g = await view.evaluate(n => { const a = [...document.querySelectorAll('.drop')].map(e => { const r = e.getBoundingClientRect(); return { x: window.screenX + r.x + r.width / 2, y: window.screenY + (window.outerHeight - window.innerHeight) + r.y + r.height / 2, w: r.width, l: (e.getAttribute('aria-label') || '').toLowerCase() }; }).filter(o => o.w > 0 && o.l.includes(n.toLowerCase())).sort((a, b) => b.w - a.w); return a[0] || null; }, needle); if (!g) throw new Error('no bubble ' + needle); return g; };
   await scene('mapplay', async () => {
     await view.evaluate(() => { const c = document.querySelector('#panelClose'); if (c && !document.querySelector('#panel').hidden) c.click(); document.querySelector('#fit').click(); }); await sleep(1800);
+    { const hb = await bubble('tokyo trip'); await rig.glide(...css(hb.x, hb.y), 700); await sleep(250); for (let i = 0; i < 3; i++) { await rig.wheel(1); await sleep(220); } rig.log('zoomed'); await sleep(1400); }
     const h = await bubble('tokyo hotels under'); rig.log('hub', { x: h.x, y: h.y, w: h.w });
     await rig.glide(...css(h.x, h.y), 900); await sleep(900); rig.log('hover');
     await rig.down(); rig.log('grab'); await sleep(120);

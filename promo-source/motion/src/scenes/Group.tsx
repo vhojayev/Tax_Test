@@ -13,7 +13,7 @@ import { plan } from '../lib/plan';
 import { ev } from '../lib/ev';
 import { C } from '../theme';
 
-const PO = plan([{ from: 0.8, to: 4.2, rate: 1.5 }]);
+const PO = plan([{ from: 1.2, to: 4.9, rate: 1.35 }]);
 const PT = plan([{ from: 0.9, to: 2.2, rate: 0.62 }, { from: 2.2, to: 4.05, rate: 1.0 }, { from: 4.05, to: 6.6, rate: 1.25 }, { from: 6.6, to: 8.0, rate: 0.7 }, { from: 8.0, to: 9.2, rate: 1.4 }]);
 export const GROUP_FRAMES = CARD + PO.total + PT.total;
 export const Group: React.FC = () => {
@@ -41,9 +41,9 @@ export const Group: React.FC = () => {
         </Camera>
         <Keycaps keys={['Alt', 'Shift', 'D']} x={90} y={440} inAt={4} pressAt={Math.round(0.55 * fps)} outAt={Math.round((off / fps - 0.15) * fps)} size={80} />
         <Chip kicker="Open the map" text="Press Alt + Shift + D" inAt={6} outAt={Math.round((off / fps - 0.1) * fps)} color={C.violet} />
-        <Tag text="Before: 45 loose tabs" inAt={f(1.0)} outAt={f(2.3)} color={C.coral} y={170} />
+        <Tag text="Before: 45 loose tabs" inAt={f(1.0)} outAt={f(2.3)} color={C.coral} y={300} />
         <Chip kicker="Group" text="Click “Group by topic”." inAt={f(2.4)} outAt={f(4.5)} color={C.sky} />
-        <Tag text="After: named groups, one per topic" inAt={f(4.8)} outAt={f(7.6)} color={C.mint} y={170} />
+        <Tag text="After: named groups, one per topic" inAt={f(4.8)} outAt={f(7.6)} color={C.mint} y={300} />
         <Chip kicker="Group" text="Changed your mind? Undo." inAt={f(7.7)} color={C.sky} />
         <Sfx cues={[{ n: 'key', f: 0.55 * fps, v: 0.6 }, { n: 'key', f: 0.62 * fps, v: 0.6 }, { n: 'key', f: 0.69 * fps, v: 0.7 }, { n: 'whoosh', f: off - 20, v: 0.6 }, { n: 'pop', f: f(ev('topic', 'menu-open').t), v: 0.55 }, { n: 'click', f: f(ev('topic', 'menu-click').t), v: 0.8 }, { n: 'swoosh', f: f(ev('topic', 'menu-click').t + 0.1), v: 0.5 }, { n: 'chime', f: f(ev('topic', 'menu-click').t + 1.0), v: 0.55 }, { n: 'click', f: f(ev('topic', 'undo-click').t), v: 0.7 }, { n: 'rewind', f: f(ev('topic', 'undo-click').t), v: 0.6 }]} />
       </Sequence>
