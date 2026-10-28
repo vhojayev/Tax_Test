@@ -1,0 +1,36 @@
+<!doctype html><meta charset="utf-8"><title>hook</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#0e1220;overflow:hidden;font-family:Inter,"Segoe UI",system-ui,sans-serif}
+#root{position:absolute;inset:0}
+#bar{position:absolute;left:0;right:0;top:0;height:132px;background:#171c2c;border-bottom:2px solid #232a40}
+#strip{position:absolute;left:34px;right:34px;top:40px;height:92px;display:flex;gap:4px;align-items:flex-end}
+.t{height:84px;flex:0 0 auto;width:230px;border-radius:18px 18px 0 0;background:#232a40;padding:18px 16px;display:flex;align-items:center;gap:12px;overflow:hidden;transition:width .22s cubic-bezier(.2,.8,.2,1),background .2s;animation:pop .28s ease-out}
+.t.on{background:#3a4566}
+.t i{width:26px;height:26px;border-radius:8px;flex:0 0 26px}
+.t b{display:block;height:10px;border-radius:5px;background:rgba(255,255,255,.28);flex:1}
+@keyframes pop{from{transform:translateY(22px);opacity:0}to{transform:none;opacity:1}}
+#tool{position:absolute;left:0;right:0;top:134px;height:92px;background:#121726;display:flex;align-items:center;padding:0 48px;gap:24px}
+#url{height:50px;flex:1;border-radius:25px;background:#1d2437;display:flex;align-items:center;padding:0 26px;color:rgba(255,255,255,.4);font-size:26px}
+#page{position:absolute;left:0;right:0;top:228px;bottom:0;background:#0e1220}
+#card{position:absolute;left:820px;right:90px;top:60px;border-radius:30px;background:#171c2c;border:2px solid #232a40;padding:60px 70px;transition:transform .15s}
+#card h2{margin:0 0 34px;font-size:76px;font-weight:800;color:#e9edf8;letter-spacing:-2px}
+#card .l{height:20px;border-radius:10px;background:#252d46;margin:24px 0}
+#card.swap{transform:translateX(14px)}
+@media (max-width:1200px){#card{left:60px;right:60px;top:560px;padding:44px 48px}#card h2{font-size:64px}#url{font-size:24px}}
+.shake{animation:shake .16s infinite}
+@keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(2px,-2px)}50%{transform:translate(-2px,1px)}75%{transform:translate(1px,2px)}100%{transform:translate(0,0)}}
+</style>
+<div id="root"><div id="bar"><div id="strip"></div></div><div id="tool"><div id="url">search or type a URL</div></div><div id="page"><div id="card"><h2 id="h">Flight deals</h2><div class="l" style="width:92%"></div><div class="l" style="width:78%"></div><div class="l" style="width:86%"></div><div class="l" style="width:54%"></div></div></div></div>
+<script src="fx.js"></script>
+<script>
+const hues=[210,18,150,280,48,340,190,100,24,260,5,170];
+const titles=['Flight deals','Pancake recipe','Quarterly report','Pull request 12','Hotel booking','Rail timetable','Cat pictures','Tax form','Car listings','Bread starter','Date formats','Packing list'];
+const strip=document.getElementById('strip');let n=0;
+function add(){const t=document.createElement('div');t.className='t';const i=document.createElement('i');i.style.background=`hsl(${hues[n%hues.length]} 55% 58%)`;const b=document.createElement('b');t.append(i,b);t.dataset.i=n;strip.appendChild(t);n++;layout();}
+function layout(){const w=Math.max(30,Math.min(230,(innerWidth-68-n*4)/n));for(const t of strip.children){t.style.width=w+'px';const bb=t.querySelector('b');bb.style.display=w<86?'none':'block';t.style.padding=w<60?'18px 2px':'18px 16px';t.style.justifyContent=w<60?'center':'flex-start'}}
+function activate(i){for(const t of strip.children)t.classList.remove('on');const t=strip.children[i];if(t){t.classList.add('on');}const c=document.getElementById('card');c.classList.add('swap');setTimeout(()=>c.classList.remove('swap'),140);document.getElementById('h').textContent=titles[(i*5+3)%titles.length];}
+function rects(){return [...strip.children].map(t=>{const r=t.getBoundingClientRect();return{x:r.x+r.width/2,y:r.y+r.height/2}})}
+function climb(from,to,ms){const t0=performance.now();let cur=n;const ease=t=>1-Math.pow(1-t,3);const f=now=>{const t=Math.min(1,(now-t0)/ms),v=Math.round(from+(to-from)*ease(t));while(n<v)add();if(t<1)requestAnimationFrame(f)};requestAnimationFrame(f);document.getElementById('bar').classList.add('shake');setTimeout(()=>document.getElementById('bar').classList.remove('shake'),ms)}
+window.HOOK={add,layout,activate,rects,climb,get n(){return n}};
+for(let i=0;i<12;i++)add();strip.querySelectorAll('.t').forEach(t=>t.style.animation='none');
+</script>
