@@ -1,1 +1,4 @@
 
+node_modules/
+*.mkv
+promo-source/motion/out/

@@ -1,0 +1,275 @@
+{
+ "trip": {
+  "color": "#e8590c",
+  "pages": [
+   [
+    "wayfarer.example",
+    "/tokyo/april",
+    "Tokyo trip planning: start here"
+   ],
+   [
+    "wayfarer.example",
+    "/tokyo/where-to-stay",
+    "Tokyo in April: what to expect"
+   ],
+   [
+    "stayfinder.example",
+    "/tokyo/hotels",
+    "Best neighborhoods to stay in Tokyo"
+   ],
+   [
+    "skyfare.example",
+    "/flights/tokyo",
+    "Tokyo hotels under $150"
+   ],
+   [
+    "wayfarer.example",
+    "/tokyo/rail-pass",
+    "Cheap flights to Tokyo"
+   ],
+   [
+    "stayfinder.example",
+    "/tokyo/shinjuku",
+    "Tokyo rail pass: worth it?"
+   ],
+   [
+    "stayfinder.example",
+    "/tokyo/capsule",
+    "Tokyo hotel reviews: Shinjuku"
+   ],
+   [
+    "wayfarer.example",
+    "/tokyo/day-trips",
+    "Tokyo capsule hotel guide"
+   ],
+   [
+    "wayfarer.example",
+    "/tokyo/blossom",
+    "Tokyo day trips by train"
+   ],
+   [
+    "wayfarer.example",
+    "/tokyo/food",
+    "Tokyo cherry blossom forecast"
+   ]
+  ],
+  "tree": [
+   -1,
+   0,
+   0,
+   0,
+   0,
+   3,
+   3,
+   3,
+   1,
+   2
+  ]
+ },
+ "bread": {
+  "color": "#2f9e44",
+  "pages": [
+   [
+    "breadlab.example",
+    "/starter/troubleshooting",
+    "Sourdough starter not rising?"
+   ],
+   [
+    "breadlab.example",
+    "/starter/feeding",
+    "Sourdough starter feeding schedule"
+   ],
+   [
+    "breadlab.example",
+    "/flour",
+    "Best flour for sourdough bread"
+   ],
+   [
+    "breadlab.example",
+    "/recipes/dutch-oven",
+    "Sourdough dutch oven loaf recipe"
+   ],
+   [
+    "breadlab.example",
+    "/scoring",
+    "Sourdough scoring patterns for beginners"
+   ],
+   [
+    "crumbs.example",
+    "/hydration",
+    "Sourdough hydration explained"
+   ],
+   [
+    "crumbs.example",
+    "/banneton",
+    "Sourdough banneton basket guide"
+   ]
+  ],
+  "tree": [
+   -1,
+   0,
+   0,
+   0,
+   3,
+   4,
+   1
+  ]
+ },
+ "car": {
+  "color": "#7048e8",
+  "pages": [
+   [
+    "carwise.example",
+    "/guides/checklist",
+    "Used hatchback buying checklist"
+   ],
+   [
+    "carwise.example",
+    "/reviews/hatchbacks",
+    "Reliable used hatchbacks compared"
+   ],
+   [
+    "autolist.example",
+    "/search",
+    "Used hatchback listings near me"
+   ],
+   [
+    "autolist.example",
+    "/listing/48213",
+    "2018 used hatchback, 62k miles"
+   ],
+   [
+    "autolist.example",
+    "/listing/47790",
+    "2017 used hatchback, 71k miles"
+   ],
+   [
+    "carwise.example",
+    "/guides/history",
+    "How to check used hatchback history"
+   ],
+   [
+    "coverly.example",
+    "/quotes/used-car",
+    "Insurance quotes for a used hatchback"
+   ]
+  ],
+  "tree": [
+   -1,
+   0,
+   0,
+   2,
+   2,
+   0,
+   1
+  ]
+ },
+ "code": {
+  "color": "#1c7ed6",
+  "pages": [
+   [
+    "codehub.example",
+    "/me/habit-tracker",
+    "habit-tracker: code repository"
+   ],
+   [
+    "codehub.example",
+    "/me/habit-tracker/issues/12",
+    "habit-tracker issue 12: streak resets at midnight"
+   ],
+   [
+    "devdocs.example",
+    "/js/date",
+    "JavaScript date handling for habit-tracker"
+   ],
+   [
+    "devdocs.example",
+    "/time-zones",
+    "JavaScript time zones explained"
+   ],
+   [
+    "qa-hub.example",
+    "/q/9921",
+    "Answer: habit-tracker streak resets at local midnight"
+   ],
+   [
+    "devdocs.example",
+    "/testing/dates",
+    "Unit testing JavaScript dates"
+   ]
+  ],
+  "tree": [
+   -1,
+   0,
+   1,
+   1,
+   1,
+   3
+  ]
+ },
+ "misc": {
+  "color": "#868e96",
+  "pages": [
+   [
+    "mailbox.example",
+    "/inbox",
+    "Inbox (12)"
+   ],
+   [
+    "calendar.example",
+    "/week",
+    "This week"
+   ],
+   [
+    "newsdesk.example",
+    "/today",
+    "Today's headlines"
+   ],
+   [
+    "notepad.example",
+    "/shopping",
+    "Shopping list"
+   ],
+   [
+    "mapquest.example",
+    "/route",
+    "Route to the office"
+   ],
+   [
+    "recipes.example",
+    "/pancakes",
+    "Fluffy pancakes"
+   ],
+   [
+    "weatherly.example",
+    "/forecast",
+    "7-day forecast"
+   ],
+   [
+    "bank.example",
+    "/accounts",
+    "Accounts overview"
+   ],
+   [
+    "musicbox.example",
+    "/lofi",
+    "Lo-fi beats to focus"
+   ],
+   [
+    "wikiland.example",
+    "/tabs",
+    "History of the web browser"
+   ],
+   [
+    "jobboard.example",
+    "/saved",
+    "Saved jobs"
+   ],
+   [
+    "learnly.example",
+    "/course/12",
+    "Intro to statistics"
+   ]
+  ]
+ }
+}
